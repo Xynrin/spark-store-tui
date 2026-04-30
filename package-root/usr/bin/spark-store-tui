@@ -1,0 +1,1002 @@
+#!/usr/bin/env bash
+set -u
+
+# Spark Store / APM Store TUI
+# Installed command: spark-store-tui
+#
+# Environment:
+#   MODE=auto|spark|apm|choose
+#   ARCH_PATH=amd64-store|arm64-store|amd64-apm|arm64-apm
+#   BASE=https://d.spark-app.store
+#   STRICT_SPEC=0|1
+#   DIRECT_FALLBACK=0|1
+#   INSTALL_AFTER_DOWNLOAD=auto|1|0
+#   KEEP_DOWNLOADS=0|1
+#   DOWNLOAD_DIR=/custom/path
+#   IMAGE_PREVIEW=1|0
+#   IMAGE_KIND=auto|icon|screen
+#   IMAGE_WIDTH=16
+#   IMAGE_HEIGHT=8
+#   ARIA2_READOUT=1|0
+#   ALLOW_SPARK_ON_NON_DEB=0|1
+
+BASE="${BASE:-https://d.spark-app.store}"
+MODE="${MODE:-auto}"
+STRICT_SPEC="${STRICT_SPEC:-1}"
+DIRECT_FALLBACK="${DIRECT_FALLBACK:-0}"
+INSTALL_AFTER_DOWNLOAD="${INSTALL_AFTER_DOWNLOAD:-auto}"
+KEEP_DOWNLOADS="${KEEP_DOWNLOADS:-0}"
+IMAGE_PREVIEW="${IMAGE_PREVIEW:-1}"
+IMAGE_KIND="${IMAGE_KIND:-auto}"
+IMAGE_WIDTH="${IMAGE_WIDTH:-16}"
+IMAGE_HEIGHT="${IMAGE_HEIGHT:-8}"
+ARIA2_READOUT="${ARIA2_READOUT:-1}"
+ALLOW_SPARK_ON_NON_DEB="${ALLOW_SPARK_ON_NON_DEB:-0}"
+CACHE_DIR="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/spark-store-tui}"
+STATE_DIR="$CACHE_DIR/state"
+
+if [ -n "${DOWNLOAD_DIR:-}" ]; then
+  AUTO_TMP_DOWNLOAD_DIR=0
+else
+  DOWNLOAD_DIR="$(mktemp -d /tmp/spark-store-tui.XXXXXX)"
+  AUTO_TMP_DOWNLOAD_DIR=1
+fi
+
+mkdir -p "$CACHE_DIR" "$STATE_DIR" "$DOWNLOAD_DIR"
+STATE_LAST_URL="$STATE_DIR/last_ok_url"
+STATE_LAST_ARCH="$STATE_DIR/last_ok_arch"
+
+info() { printf '[info] %s\n' "$*"; }
+ok() { printf '[ ok ] %s\n' "$*"; }
+warn() { printf '[warn] %s\n' "$*" >&2; }
+err() { printf '[err ] %s\n' "$*" >&2; }
+
+usage() {
+  cat <<'USAGE'
+Spark Store / APM Store TUI
+
+Usage:
+  spark-store-tui
+
+Common examples:
+  spark-store-tui
+  MODE=spark spark-store-tui
+  MODE=apm spark-store-tui
+  MODE=choose spark-store-tui
+  INSTALL_AFTER_DOWNLOAD=0 KEEP_DOWNLOADS=1 spark-store-tui
+  ARCH_PATH=amd64-store MODE=spark spark-store-tui
+
+Environment:
+  MODE=auto|spark|apm|choose       Default: auto
+  ARCH_PATH=<path>                 Override detected arch path
+  STRICT_SPEC=0|1                  Default: 1, use documented metadata paths
+  DIRECT_FALLBACK=0|1              Default: 0, try direct package URL after metalink failure
+  INSTALL_AFTER_DOWNLOAD=auto|1|0  Default: auto
+  KEEP_DOWNLOADS=0|1               Default: 0, temporary downloads are deleted on exit
+  DOWNLOAD_DIR=/path               Override download directory; manual dirs are not auto-deleted
+  IMAGE_PREVIEW=1|0                Default: 1
+  IMAGE_KIND=auto|icon|screen      Default: auto
+  IMAGE_WIDTH=16 IMAGE_HEIGHT=8
+  ARIA2_READOUT=1|0                Default: 1
+  ALLOW_SPARK_ON_NON_DEB=0|1       Default: 0, non-Debian systems use APM only
+USAGE
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  --version) echo "spark-store-tui 0.7.2"; exit 0 ;;
+esac
+
+remember_last_ok() {
+  printf '%s' "$1" > "$STATE_LAST_URL"
+  printf '%s' "$2" > "$STATE_LAST_ARCH"
+}
+
+get_last_ok_url() { cat "$STATE_LAST_URL" 2>/dev/null || true; }
+get_last_ok_arch() { cat "$STATE_LAST_ARCH" 2>/dev/null || true; }
+
+need_cmd() {
+  local miss=0 cmd
+
+  for cmd in curl jq fzf aria2c; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      err "Missing dependency: $cmd"
+      miss=1
+    fi
+  done
+
+  if [ "$miss" -eq 1 ]; then
+    echo
+    echo "Debian / Ubuntu / Deepin / UOS: sudo apt install -y curl jq fzf aria2 chafa"
+    echo "Arch / Manjaro / EndeavourOS:   sudo pacman -S --needed curl jq fzf aria2 chafa"
+    echo "Fedora:                         sudo dnf install -y curl jq fzf aria2 chafa"
+    echo "openSUSE:                       sudo zypper install curl jq fzf aria2 chafa"
+    exit 1
+  fi
+}
+
+read_os_release_value() {
+  local key="$1" default="" line value
+
+  case "$key" in
+    ID|PRETTY_NAME) default="unknown" ;;
+    ID_LIKE) default="" ;;
+  esac
+
+  if [ ! -r /etc/os-release ]; then
+    printf '%s' "$default"
+    return
+  fi
+
+  line="$(grep -E "^${key}=" /etc/os-release 2>/dev/null | head -n 1 || true)"
+  if [ -z "$line" ]; then
+    printf '%s' "$default"
+    return
+  fi
+
+  value="${line#*=}"
+  value="${value%\"}"
+  value="${value#\"}"
+  printf '%s' "${value:-$default}"
+}
+
+distro_family() {
+  local id id_like all
+
+  id="$(read_os_release_value ID)"
+  id_like="$(read_os_release_value ID_LIKE)"
+  all="$id $id_like"
+
+  case "$all" in
+    *deepin*|*uos*|*debian*|*ubuntu*|*kylin*|*linuxmint*|*linux-mint*) echo "deb" ;;
+    *arch*|*manjaro*|*endeavouros*) echo "arch" ;;
+    *fedora*|*rhel*|*centos*|*rocky*|*almalinux*) echo "rpm" ;;
+    *opensuse*|*openSUSE*|*suse*) echo "suse" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+host_cpu_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) echo "x86" ;;
+    aarch64|arm64) echo "arm" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+is_deb_like_system() {
+  [ "$(distro_family)" = "deb" ]
+}
+
+spark_allowed_on_this_system() {
+  is_deb_like_system || [ "$ALLOW_SPARK_ON_NON_DEB" = "1" ]
+}
+
+auto_mode_from_system() {
+  local family
+
+  family="$(distro_family)"
+  if [ "$family" != "deb" ] && [ "$ALLOW_SPARK_ON_NON_DEB" != "1" ]; then
+    echo "apm"
+    return
+  fi
+
+  if command -v ssinstall >/dev/null 2>&1 && ! command -v apm >/dev/null 2>&1; then
+    echo "spark"
+    return
+  fi
+
+  if command -v apm >/dev/null 2>&1 && ! command -v ssinstall >/dev/null 2>&1; then
+    echo "apm"
+    return
+  fi
+
+  case "$family" in
+    deb) echo "spark" ;;
+    *) echo "apm" ;;
+  esac
+}
+
+default_arch_for_mode() {
+  local mode="$1" cpu
+
+  cpu="$(host_cpu_arch)"
+  case "$mode:$cpu" in
+    spark:x86) echo "amd64-store" ;;
+    spark:arm) echo "arm64-store" ;;
+    apm:x86) echo "amd64-apm" ;;
+    apm:arm) echo "arm64-apm" ;;
+    spark:*) echo "amd64-store" ;;
+    apm:*) echo "amd64-apm" ;;
+    *) echo "amd64-apm" ;;
+  esac
+}
+
+choose_mode_interactive() {
+  local selected
+
+  if ! spark_allowed_on_this_system; then
+    selected="$(
+      printf '%s\n' \
+        $'apm\tAPM Store (default on non-Debian systems)' |
+        fzf --prompt="Choose store: " \
+            --delimiter=$'\t' \
+            --with-nth=2 \
+            --layout=reverse \
+            --header="Spark Store is hidden on non-Debian systems. Set ALLOW_SPARK_ON_NON_DEB=1 to test it."
+    )"
+    if [ -z "$selected" ]; then
+      echo "apm"
+    else
+      printf '%s' "$selected" | cut -f1
+    fi
+    return
+  fi
+
+  selected="$(
+    printf '%s\n' \
+      $'spark\tSpark Store' \
+      $'apm\tAPM Store' |
+      fzf --prompt="Choose store: " \
+          --delimiter=$'\t' \
+          --with-nth=2 \
+          --layout=reverse \
+          --header="Enter to confirm, Esc for automatic mode"
+  )"
+
+  if [ -z "$selected" ]; then
+    auto_mode_from_system
+  else
+    printf '%s' "$selected" | cut -f1
+  fi
+}
+
+resolve_mode() {
+  case "$MODE" in
+    spark)
+      if spark_allowed_on_this_system; then
+        echo "spark"
+      else
+        echo "apm"
+      fi
+      ;;
+    apm) echo "apm" ;;
+    choose) choose_mode_interactive ;;
+    auto|"") auto_mode_from_system ;;
+    *)
+      warn "Unknown MODE=$MODE; using automatic mode."
+      auto_mode_from_system
+      ;;
+  esac
+}
+
+resolve_arch() {
+  local mode="$1"
+
+  if [ -n "${ARCH_PATH:-}" ]; then
+    case "$mode:$ARCH_PATH" in
+      spark:amd64-store|spark:arm64-store|apm:amd64-apm|apm:arm64-apm)
+        echo "$ARCH_PATH"
+        return
+        ;;
+      *)
+        warn "ARCH_PATH=$ARCH_PATH is not compatible with MODE=$mode; using auto-detected path."
+        ;;
+    esac
+  fi
+
+  default_arch_for_mode "$mode"
+}
+
+extract_arch_from_url() {
+  printf '%s' "$1" | awk -F/ '
+    {
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^(store|amd64-store|arm64-store|amd64-apm|arm64-apm)$/) {
+          print $i
+          exit
+        }
+      }
+    }'
+}
+
+urlencode() {
+  jq -rn --arg v "$1" '$v|@uri'
+}
+
+fetch_json_first() {
+  local url data arch
+
+  rm -f "$STATE_LAST_URL" "$STATE_LAST_ARCH"
+  for url in "$@"; do
+    data="$(curl -fsSL --connect-timeout 8 --max-time 30 --retry 1 "$url" 2>/dev/null || true)"
+    if [ -n "$data" ] && printf '%s' "$data" | jq -e . >/dev/null 2>&1; then
+      arch="$(extract_arch_from_url "$url")"
+      remember_last_ok "$url" "${arch:-unknown}"
+      printf '%s' "$data"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+category_urls() {
+  local mode="$1" arch="$2"
+
+  if [ "$mode" = "spark" ]; then
+    printf '%s\n' "$BASE/store/categories.json"
+  else
+    printf '%s\n' "$BASE/$arch/categories.json"
+  fi
+}
+
+applist_urls() {
+  local mode="$1" arch="$2" category="$3"
+
+  printf '%s\n' "$BASE/$arch/$category/applist.json"
+  if [ "$mode" = "spark" ] && [ "$STRICT_SPEC" != "1" ]; then
+    printf '%s\n' "$BASE/store/$category/applist.json"
+  fi
+}
+
+appjson_urls() {
+  local mode="$1" arch="$2" category="$3" pkg="$4"
+
+  printf '%s\n' "$BASE/$arch/$category/$pkg/app.json"
+  if [ "$mode" = "spark" ] && [ "$STRICT_SPEC" != "1" ]; then
+    printf '%s\n' "$BASE/store/$category/$pkg/app.json"
+  fi
+}
+
+normalize_categories() {
+  jq -r 'to_entries[] | [.key, (.value.zh // .value.name // .value.en // .key)] | @tsv'
+}
+
+normalize_applist() {
+  jq -r '.[] | select((.Pkgname // .pkgname // "") != "") | [(.Pkgname // .pkgname), (.Name // .name // .Pkgname // .pkgname)] | @tsv'
+}
+
+run_aria2() {
+  local input_file="$1" show_readout
+
+  if [ "$ARIA2_READOUT" = "0" ]; then
+    show_readout=false
+  else
+    show_readout=true
+  fi
+
+  aria2c \
+    --dir="$DOWNLOAD_DIR" \
+    --continue=true \
+    --file-allocation=none \
+    --console-log-level=error \
+    --summary-interval=0 \
+    --show-console-readout="$show_readout" \
+    -x 8 \
+    -s 8 \
+    -j 2 \
+    "$input_file"
+}
+
+unique_lines() {
+  awk '!seen[$0]++'
+}
+
+build_download_dirs() {
+  local mode="$1" arch="$2" category="$3" pkg="$4"
+
+  printf '%s\n' "$BASE/$arch/$category/$pkg"
+  if [ "$mode" = "spark" ] && [ "$STRICT_SPEC" != "1" ]; then
+    printf '%s\n' "$BASE/store/$category/$pkg"
+  fi
+}
+
+try_aria2_from_url_file() {
+  local url="$1" out_file="$2"
+
+  if curl -fsSL --connect-timeout 10 --max-time 60 --retry 1 -o "$out_file" "$url"; then
+    if [ -s "$out_file" ]; then
+      run_aria2 "$out_file"
+      return $?
+    fi
+  fi
+
+  return 1
+}
+
+try_direct_download() {
+  local url="$1" filename="$2"
+
+  curl -fsSL --connect-timeout 10 --max-time 600 --retry 1 -o "$DOWNLOAD_DIR/$filename" "$url"
+}
+
+download_file() {
+  local mode="$1" arch="$2" category="$3" pkg="$4" filename="$5"
+  local encoded_filename metalink_file dirs dir metalink_url direct_url
+
+  if [ -z "$mode" ] || [ -z "$arch" ] || [ -z "$category" ] || [ -z "$pkg" ] || [ -z "$filename" ]; then
+    err "Internal error: empty download argument."
+    return 1
+  fi
+
+  mkdir -p "$DOWNLOAD_DIR"
+  encoded_filename="$(urlencode "$filename")"
+  metalink_file="$DOWNLOAD_DIR/$filename.metalink"
+  rm -f "$metalink_file"
+  dirs="$(build_download_dirs "$mode" "$arch" "$category" "$pkg" | unique_lines)"
+
+  info "Download directory: $DOWNLOAD_DIR"
+  info "Download method: Metalink + aria2c"
+  info "Candidate directories:"
+  printf '%s\n' "$dirs" | sed 's/^/  - /'
+
+  while IFS= read -r dir; do
+    [ -n "$dir" ] || continue
+
+    echo
+    metalink_url="$dir/$filename.metalink"
+    info "Trying metalink: $metalink_url"
+    if try_aria2_from_url_file "$metalink_url" "$metalink_file"; then
+      return 0
+    fi
+
+    metalink_url="$dir/$encoded_filename.metalink"
+    info "Trying URL-encoded metalink: $metalink_url"
+    if try_aria2_from_url_file "$metalink_url" "$metalink_file"; then
+      return 0
+    fi
+  done <<< "$dirs"
+
+  if [ "$DIRECT_FALLBACK" = "1" ]; then
+    warn "Metalink download failed; trying direct package URLs."
+    while IFS= read -r dir; do
+      [ -n "$dir" ] || continue
+
+      direct_url="$dir/$filename"
+      info "Trying direct URL: $direct_url"
+      if try_direct_download "$direct_url" "$filename"; then
+        return 0
+      fi
+
+      direct_url="$dir/$encoded_filename"
+      info "Trying URL-encoded direct URL: $direct_url"
+      if try_direct_download "$direct_url" "$filename"; then
+        return 0
+      fi
+    done <<< "$dirs"
+  fi
+
+  err "All candidate download paths failed."
+  return 1
+}
+
+create_preview_script() {
+  local file
+
+  file="$(mktemp /tmp/spark_preview.XXXXXX)"
+  cat > "$file" <<'PREVIEW_EOF'
+#!/usr/bin/env bash
+set -u
+
+LINE="$1"
+CATEGORY="$2"
+BASE="$3"
+MODE="$4"
+ARCH="$5"
+CACHE_DIR="$6"
+IMAGE_PREVIEW="$7"
+IMAGE_WIDTH="$8"
+IMAGE_HEIGHT="$9"
+STRICT_SPEC="${10}"
+IMAGE_KIND="${11:-auto}"
+
+pkg="$(printf '%s' "$LINE" | cut -f1)"
+
+if [ "$pkg" = "__BACK__" ]; then
+  echo "Enter to go back to categories."
+  exit 0
+fi
+
+fetch_json() {
+  local url="$1"
+  curl -fsSL --connect-timeout 6 --max-time 20 --retry 0 "$url" 2>/dev/null || true
+}
+
+try_curl_image() {
+  local url="$1" out="$2"
+
+  [ -n "$url" ] || return 1
+  curl -fsSL --connect-timeout 5 --max-time 15 "$url" -o "$out" 2>/dev/null
+}
+
+render_image() {
+  local img="$1"
+
+  [ "$IMAGE_PREVIEW" = "1" ] || return 0
+  [ -s "$img" ] || return 0
+
+  if command -v chafa >/dev/null 2>&1; then
+    chafa \
+      --size="${IMAGE_WIDTH}x${IMAGE_HEIGHT}" \
+      --scale=max \
+      --animate=off \
+      --colors=full \
+      --symbols=block \
+      --font-ratio="${CHAFA_FONT_RATIO:-1/2}" \
+      "$img" 2>/dev/null || chafa --size="${IMAGE_WIDTH}x${IMAGE_HEIGHT}" --scale=max "$img" 2>/dev/null || true
+    echo
+  elif command -v viu >/dev/null 2>&1; then
+    viu -w "$IMAGE_WIDTH" "$img" 2>/dev/null || true
+    echo
+  fi
+}
+
+print_icon_candidates() {
+  local detail="$1"
+
+  printf '%s' "$detail" | jq -r '
+    def arr(x):
+      if x == null then []
+      elif (x|type) == "array" then x
+      elif (x|type) == "string" then (try (x|fromjson) catch [x])
+      else [x] end;
+    def image_value:
+      if type == "object" then (.url // .src // .path // .href // empty)
+      else . end;
+    [
+      arr(.icons),
+      arr(.Icons),
+      arr(.icon),
+      arr(.Icon),
+      arr(.logo),
+      arr(.Logo),
+      arr(.icon_url),
+      arr(.IconUrl),
+      arr(.iconUrl)
+    ]
+    | flatten
+    | .[]
+    | image_value
+    | select(type == "string")
+    | select(length > 0)
+  ' 2>/dev/null
+}
+
+print_screen_candidates() {
+  local detail="$1"
+
+  printf '%s' "$detail" | jq -r '
+    def arr(x):
+      if x == null then []
+      elif (x|type) == "array" then x
+      elif (x|type) == "string" then (try (x|fromjson) catch [x])
+      else [x] end;
+    def image_value:
+      if type == "object" then (.url // .src // .path // .href // empty)
+      else . end;
+    [
+      arr(.img_urls),
+      arr(.Images),
+      arr(.screenshots),
+      arr(.Screenshots),
+      arr(.screen)
+    ]
+    | flatten
+    | .[]
+    | image_value
+    | select(type == "string")
+    | select(length > 0)
+  ' 2>/dev/null
+}
+
+resolve_image_url() {
+  local raw="$1" detail_dir="$2"
+
+  case "$raw" in
+    http://*|https://*) printf '%s' "$raw" ;;
+    //*) printf 'https:%s' "$raw" ;;
+    /*) printf '%s' "$BASE$raw" ;;
+    *) printf '%s' "$detail_dir/$raw" ;;
+  esac
+}
+
+try_image_candidates() {
+  local detail="$1" detail_dir="$2" kind="$3" img_cache="$4" img_src_file="$5"
+  local raw_img img_url candidate_cmd
+
+  case "$kind" in
+    icon) candidate_cmd="print_icon_candidates" ;;
+    screen) candidate_cmd="print_screen_candidates" ;;
+    *) return 1 ;;
+  esac
+
+  while IFS= read -r raw_img; do
+    [ -n "$raw_img" ] || continue
+    img_url="$(resolve_image_url "$raw_img" "$detail_dir")"
+    if try_curl_image "$img_url" "$img_cache"; then
+      printf '%s' "$img_url" > "$img_src_file"
+      render_image "$img_cache"
+      return 0
+    fi
+  done < <($candidate_cmd "$detail")
+
+  return 1
+}
+
+try_numbered_screens() {
+  local detail_dir="$1" img_cache="$2" img_src_file="$3"
+  local i img_url
+
+  for i in 1 2 3 4 5; do
+    img_url="$detail_dir/screen_${i}.png"
+    if try_curl_image "$img_url" "$img_cache"; then
+      printf '%s' "$img_url" > "$img_src_file"
+      render_image "$img_cache"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+detail_url="$BASE/$ARCH/$CATEGORY/$pkg/app.json"
+detail="$(fetch_json "$detail_url")"
+
+if [ -z "$detail" ] || ! printf '%s' "$detail" | jq -e . >/dev/null 2>&1; then
+  if [ "$MODE" = "spark" ] && [ "$STRICT_SPEC" != "1" ]; then
+    fallback_url="$BASE/store/$CATEGORY/$pkg/app.json"
+    detail="$(fetch_json "$fallback_url")"
+    if [ -n "$detail" ] && printf '%s' "$detail" | jq -e . >/dev/null 2>&1; then
+      detail_url="$fallback_url"
+    else
+      echo "Failed to fetch app details."
+      echo
+      echo "Tried:"
+      echo "  $BASE/$ARCH/$CATEGORY/$pkg/app.json"
+      echo "  $fallback_url"
+      exit 0
+    fi
+  else
+    echo "Failed to fetch app details."
+    echo
+    echo "Tried:"
+    echo "  $detail_url"
+    exit 0
+  fi
+fi
+
+detail_dir="${detail_url%/app.json}"
+safe_pkg="$(printf '%s' "$pkg" | tr '/ :' '___')"
+img_cache="$CACHE_DIR/images/${ARCH}_${CATEGORY}_${safe_pkg}_${IMAGE_KIND}.img"
+img_src_file="$CACHE_DIR/images/${ARCH}_${CATEGORY}_${safe_pkg}_${IMAGE_KIND}.url"
+mkdir -p "$(dirname "$img_cache")"
+rm -f "$img_cache" "$img_src_file"
+
+if [ "$IMAGE_PREVIEW" = "1" ]; then
+  case "$IMAGE_KIND" in
+    icon)
+      try_image_candidates "$detail" "$detail_dir" icon "$img_cache" "$img_src_file" ||
+        try_numbered_screens "$detail_dir" "$img_cache" "$img_src_file" || true
+      ;;
+    screen)
+      try_numbered_screens "$detail_dir" "$img_cache" "$img_src_file" ||
+        try_image_candidates "$detail" "$detail_dir" screen "$img_cache" "$img_src_file" || true
+      ;;
+    auto|*)
+      try_image_candidates "$detail" "$detail_dir" icon "$img_cache" "$img_src_file" ||
+        try_numbered_screens "$detail_dir" "$img_cache" "$img_src_file" || true
+      ;;
+  esac
+fi
+
+image_src="$(cat "$img_src_file" 2>/dev/null || true)"
+
+printf '%s' "$detail" | jq -r '
+  def v($x): if ($x == null or $x == "") then "Unknown" else ($x|tostring) end;
+  "  Name: " + v(.Name // .name),
+  "  Package: " + v(.Pkgname // .pkgname),
+  "  Version: " + v(.Version // .version),
+  "  Updated: " + v(.Update // .update),
+  "  File: " + v(.Filename // .filename),
+  "  Size: " + v(.Size // .size),
+  "  Author: " + v(.Author // .author),
+  "  Contributor: " + v(.Contributor // .contributor),
+  "  Tags: " + v(.Tags // .tags),
+  "  Website: " + v(.Website // .website)
+'
+echo "  Image mode: $IMAGE_KIND"
+if [ -n "$image_src" ]; then
+  echo "  Image source: $image_src"
+else
+  echo "  Image source: Unknown"
+fi
+echo "  Detail source: $detail_url"
+echo
+printf '%s' "$detail" | jq -r '
+  def block($x): (($x // "") | tostring | split("\n") | map("    " + .) | join("\n"));
+  "  Notes:",
+  block(.More // .more)
+'
+PREVIEW_EOF
+  chmod +x "$file"
+  printf '%s' "$file"
+}
+
+select_category() {
+  local data="$1" source="$2" mode="$3" arch="$4"
+
+  printf '%s' "$data" |
+    normalize_categories |
+    fzf --prompt="[$mode/$arch] Category: " \
+        --delimiter=$'\t' \
+        --with-nth=2 \
+        --header="Source: $source | Enter to select, Esc to quit, / to search" \
+        --header-first \
+        --layout=reverse
+}
+
+select_app() {
+  local data="$1" source="$2" mode="$3" arch="$4" category="$5" preview_script="$6"
+
+  { printf '__BACK__\tBack to categories\n'; printf '%s' "$data" | normalize_applist; } |
+    fzf --prompt="[$mode/$arch] Search app: " \
+        --delimiter=$'\t' \
+        --with-nth=2.. \
+        --layout=reverse \
+        --height=95% \
+        --header="List: $source | Enter to select, Esc to quit, / to search" \
+        --header-first \
+        --preview "bash '$preview_script' {} '$category' '$BASE' '$mode' '$arch' '$CACHE_DIR' '$IMAGE_PREVIEW' '$IMAGE_WIDTH' '$IMAGE_HEIGHT' '$STRICT_SPEC' '$IMAGE_KIND'" \
+        --preview-window=right:45%:wrap:border-rounded
+}
+
+find_downloaded_package() {
+  local filename="$1"
+
+  if [ -f "$DOWNLOAD_DIR/$filename" ]; then
+    printf '%s' "$DOWNLOAD_DIR/$filename"
+    return 0
+  fi
+
+  find "$DOWNLOAD_DIR" -maxdepth 1 -type f \
+    \( -name '*.deb' -o -name '*.spk' -o -name '*.appimage' -o -name '*.AppImage' \) \
+    -printf '%T@ %p\n' 2>/dev/null |
+    sort -nr |
+    head -n 1 |
+    cut -d' ' -f2-
+}
+
+can_install_for_mode() {
+  local mode="$1"
+
+  case "$mode" in
+    spark) command -v ssinstall >/dev/null 2>&1 ;;
+    apm) command -v apm >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+show_manual_install_hint() {
+  local mode="$1" pkg="$2" file="$3"
+
+  echo "Downloaded file: $file"
+  if [ "$mode" = "spark" ]; then
+    echo "Spark local install:"
+    echo "  sudo ssinstall \"$file\""
+  else
+    echo "APM local audit/install:"
+    echo "  sudo apm ssaudit \"$file\""
+    echo "APM online install:"
+    echo "  sudo apm install -y \"$pkg\""
+  fi
+}
+
+install_package() {
+  local mode="$1" pkg="$2" file="$3"
+
+  if [ "$INSTALL_AFTER_DOWNLOAD" = "0" ]; then
+    warn "INSTALL_AFTER_DOWNLOAD=0; downloaded only."
+    show_manual_install_hint "$mode" "$pkg" "$file"
+    return 0
+  fi
+
+  if [ "$INSTALL_AFTER_DOWNLOAD" = "auto" ] && ! can_install_for_mode "$mode"; then
+    warn "Installer for MODE=$mode is not available; skipping installation."
+    show_manual_install_hint "$mode" "$pkg" "$file"
+    return 0
+  fi
+
+  case "$mode" in
+    spark)
+      if command -v ssinstall >/dev/null 2>&1; then
+        sudo ssinstall "$file"
+        return $?
+      fi
+      err "MODE=spark requires ssinstall."
+      return 1
+      ;;
+    apm)
+      if command -v apm >/dev/null 2>&1; then
+        sudo apm ssaudit "$file"
+        return $?
+      fi
+      err "MODE=apm requires apm."
+      show_manual_install_hint "$mode" "$pkg" "$file"
+      return 1
+      ;;
+  esac
+
+  err "Unknown mode: $mode"
+  return 1
+}
+
+cleanup_factory() {
+  local preview_script="$1"
+
+  rm -f "$preview_script"
+
+  if [ "${AUTO_TMP_DOWNLOAD_DIR:-0}" = "1" ] && [ "${KEEP_DOWNLOADS:-0}" != "1" ]; then
+    rm -rf "$DOWNLOAD_DIR"
+  elif [ "${KEEP_DOWNLOADS:-0}" = "1" ]; then
+    echo
+    info "Downloads kept at: $DOWNLOAD_DIR"
+  fi
+}
+
+main() {
+  need_cmd
+
+  local mode arch requested_mode preview_script pretty_name family cpu
+  local cat_urls cat_data cat_source chosen_cat category category_name
+  local list_urls list_data list_source chosen pkg appname
+  local detail_urls detail_data detail_url detail_arch filename downloaded_file ans
+
+  case "$IMAGE_KIND" in
+    auto|icon|screen) ;;
+    *)
+      warn "Unknown IMAGE_KIND=$IMAGE_KIND; using auto."
+      IMAGE_KIND="auto"
+      ;;
+  esac
+
+  pretty_name="$(read_os_release_value PRETTY_NAME)"
+  family="$(distro_family)"
+  cpu="$(host_cpu_arch)"
+  requested_mode="$MODE"
+  mode="$(resolve_mode)"
+  arch="$(resolve_arch "$mode")"
+  preview_script="$(create_preview_script)"
+  trap 'cleanup_factory "$preview_script"' EXIT
+
+  info "Distribution: $pretty_name"
+  info "Distribution family: $family"
+  info "CPU architecture: $cpu"
+  info "Store mode: $mode"
+  info "Architecture path: $arch"
+  info "Server: $BASE"
+  info "Download directory: $DOWNLOAD_DIR"
+  info "Cleanup on exit: $([ "$AUTO_TMP_DOWNLOAD_DIR" = "1" ] && [ "$KEEP_DOWNLOADS" != "1" ] && echo yes || echo no)"
+  info "Image size: ${IMAGE_WIDTH}x${IMAGE_HEIGHT}"
+  info "Image kind: $IMAGE_KIND"
+  info "aria2 readout: $ARIA2_READOUT"
+  info "Strict documented paths: $STRICT_SPEC"
+
+  if [ "$requested_mode" = "spark" ] && [ "$mode" = "apm" ] && ! spark_allowed_on_this_system; then
+    warn "MODE=spark was requested on a non-Debian-like system; using APM. Set ALLOW_SPARK_ON_NON_DEB=1 to test Spark."
+  fi
+
+  echo
+
+  while true; do
+    mapfile -t cat_urls < <(category_urls "$mode" "$arch")
+    cat_data="$(fetch_json_first "${cat_urls[@]}" || true)"
+    cat_source="$(get_last_ok_url)"
+
+    if [ -z "$cat_data" ]; then
+      err "Failed to fetch category list."
+      echo "Tried:"
+      printf '  %s\n' "${cat_urls[@]}"
+      exit 1
+    fi
+
+    chosen_cat="$(select_category "$cat_data" "$cat_source" "$mode" "$arch" || true)"
+    if [ -z "$chosen_cat" ]; then
+      echo "Exited."
+      break
+    fi
+
+    category="$(printf '%s' "$chosen_cat" | cut -f1)"
+    category_name="$(printf '%s' "$chosen_cat" | cut -f2-)"
+    info "Selected category: $category_name ($category)"
+
+    mapfile -t list_urls < <(applist_urls "$mode" "$arch" "$category")
+    list_data="$(fetch_json_first "${list_urls[@]}" || true)"
+    list_source="$(get_last_ok_url)"
+
+    if [ -z "$list_data" ]; then
+      err "Failed to fetch app list."
+      echo "Tried:"
+      printf '  %s\n' "${list_urls[@]}"
+      continue
+    fi
+
+    chosen="$(select_app "$list_data" "$list_source" "$mode" "$arch" "$category" "$preview_script" || true)"
+    if [ -z "$chosen" ]; then
+      echo "Exited."
+      break
+    fi
+
+    pkg="$(printf '%s' "$chosen" | cut -f1)"
+    appname="$(printf '%s' "$chosen" | cut -f2-)"
+    if [ "$pkg" = "__BACK__" ]; then
+      continue
+    fi
+
+    mapfile -t detail_urls < <(appjson_urls "$mode" "$arch" "$category" "$pkg")
+    detail_data="$(fetch_json_first "${detail_urls[@]}" || true)"
+    detail_url="$(get_last_ok_url)"
+    detail_arch="$(get_last_ok_arch)"
+
+    if [ -z "$detail_data" ]; then
+      err "Failed to fetch app details."
+      echo "Tried:"
+      printf '  %s\n' "${detail_urls[@]}"
+      continue
+    fi
+
+    filename="$(printf '%s' "$detail_data" | jq -r '.Filename // .filename // empty')"
+    if [ -z "$filename" ]; then
+      err "App details do not include Filename."
+      echo "Detail source: $detail_url"
+      continue
+    fi
+
+    echo
+    ok "Selected app: $appname"
+    echo "Store mode: $mode"
+    echo "Selected architecture: $arch"
+    echo "Detail architecture: ${detail_arch:-unknown}"
+    echo "Package: $pkg"
+    echo "File: $filename"
+    echo "Detail: $detail_url"
+    echo "Download directory: $DOWNLOAD_DIR"
+    if [ "$mode" = "apm" ]; then
+      echo "APM online install hint: sudo apm install -y \"$pkg\""
+    fi
+    echo
+
+    read -r -p "Start download? [Y/n] " ans
+    case "$ans" in
+      n|N|no|NO)
+        warn "Cancelled."
+        continue
+        ;;
+    esac
+
+    if ! download_file "$mode" "$arch" "$category" "$pkg" "$filename"; then
+      err "Download failed."
+      continue
+    fi
+
+    downloaded_file="$(find_downloaded_package "$filename")"
+    if [ -z "$downloaded_file" ] || [ ! -f "$downloaded_file" ]; then
+      err "Download completed, but no package file was found."
+      echo "Expected file: $DOWNLOAD_DIR/$filename"
+      continue
+    fi
+
+    ok "Download completed: $downloaded_file"
+    if install_package "$mode" "$pkg" "$downloaded_file"; then
+      ok "Done."
+    else
+      err "Install step failed."
+    fi
+
+    echo
+    read -r -n 1 -p "Press any key to return to categories, or Ctrl+C to quit..." _
+    echo
+  done
+}
+
+main "$@"

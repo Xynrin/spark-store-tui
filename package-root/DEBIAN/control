@@ -1,0 +1,21 @@
+Package: spark-store-tui
+Version: 0.7.2-1
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: SilentByte <noreply@example.com>
+Installed-Size: 26
+Depends: bash (>= 4), curl, jq, fzf, aria2, ca-certificates
+Recommends: chafa, sudo
+Suggests: spark-store, amber-pm-store
+Homepage: https://github.com/Xynrin/spark-store-tui
+Description: Terminal UI for browsing Spark Store and APM Store
+ A Bash + fzf terminal UI for browsing Spark Store and APM Store metadata,
+ previewing app details and images, and downloading packages with Metalink
+ and aria2c.
+ .
+ Downloads use a temporary directory by default and are cleaned up when the
+ program exits unless KEEP_DOWNLOADS=1 is set.
+ .
+ Debian-like systems default to Spark Store. Non-Debian systems default to
+ APM Store only and do not show Spark Store content unless explicitly allowed.
