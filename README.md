@@ -67,7 +67,30 @@ sudo dnf copr enable xynrin/spark-store-tui
 sudo dnf install spark-store-tui
 ```
 
-Until those native packages are published, use the dependency commands below.
+Until the COPR package is published, Fedora users can use the self-hosted RPM
+repository:
+
+```bash
+sudo tee /etc/yum.repos.d/spark-store-tui.repo >/dev/null <<'EOF'
+[spark-store-tui]
+name=Spark Store TUI
+baseurl=https://xynrin.github.io/spark-store-tui/rpm
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+EOF
+sudo dnf install spark-store-tui
+```
+
+Fedora Atomic, Silverblue and Kinoite users can use the same repository, then
+layer the package:
+
+```bash
+sudo rpm-ostree install spark-store-tui
+systemctl reboot
+```
+
+Until the AUR package is published, use the dependency commands below.
 
 ```bash
 # Arch / Manjaro with yay
