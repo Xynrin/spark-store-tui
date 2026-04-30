@@ -21,6 +21,16 @@ Homepage: https://github.com/Xynrin/spark-store-tui.
 
 ## Install
 
+### APT Repository
+
+```bash
+printf '%s\n' 'deb [trusted=yes] https://xynrin.github.io/spark-store-tui stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
+sudo apt update
+sudo apt install spark-store-tui
+```
+
+### Local DEB
+
 ```bash
 sudo apt install ./spark-store-tui_0.7.2-1_all.deb
 ```
