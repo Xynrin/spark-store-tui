@@ -21,7 +21,9 @@ Homepage: https://github.com/Xynrin/spark-store-tui.
 
 ## Install
 
-### APT Repository
+### Signed APT Repository
+
+For Debian-like distributions such as deepin, UOS, Debian, Ubuntu, Kylin and Linux Mint:
 
 ```bash
 sudo apt update
@@ -33,11 +35,43 @@ sudo apt update
 sudo apt install spark-store-tui
 ```
 
+Signing key fingerprint:
+
+```text
+1AE6D4E7C4DB8C016F72F8C6A4D276F9CF8E57A9
+```
+
 ### Local DEB
 
 ```bash
+curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.7.2/spark-store-tui_0.7.2-1_all.deb
 sudo apt install ./spark-store-tui_0.7.2-1_all.deb
 ```
+
+### Non-APT Distributions
+
+For Arch, Fedora, openSUSE and other non-Debian systems, install the runtime dependencies with your package manager, then install the script into `~/.local/bin`.
+
+```bash
+# Arch / Manjaro
+sudo pacman -S --needed bash curl jq fzf aria2 ca-certificates chafa
+
+# Fedora
+sudo dnf install -y bash curl jq fzf aria2 ca-certificates chafa
+
+# openSUSE
+sudo zypper install -y bash curl jq fzf aria2 ca-certificates chafa
+```
+
+```bash
+mkdir -p ~/.local/bin
+curl -fsSL https://raw.githubusercontent.com/Xynrin/spark-store-tui/main/package-root/usr/bin/spark-store-tui -o ~/.local/bin/spark-store-tui
+chmod +x ~/.local/bin/spark-store-tui
+export PATH="$HOME/.local/bin:$PATH"
+MODE=apm spark-store-tui
+```
+
+On non-Debian systems, `MODE=auto` defaults to APM Store metadata. Use `MODE=apm` explicitly if you want to avoid Spark Store `.deb` package content.
 
 ## Run
 
@@ -82,6 +116,13 @@ On non-Debian systems, including Arch, Fedora, openSUSE, Manjaro and EndeavourOS
 ## License
 
 spark-store-tui is distributed under GPL-3.0-only. See `COPYING` for the full license text.
+
+## Inspiration and Links
+
+- Inspiration: [SHORiN-KiWATA/shorin-contrib pac](https://github.com/SHORiN-KiWATA/shorin-contrib/blob/main/pacman/pac)
+- Friend link: [SHORiN-KiWATA](https://github.com/SHORiN-KiWATA)
+- Spark Store official GitHub repository: [spark-store-project/spark-store](https://github.com/spark-store-project/spark-store)
+- Spark Store official website: [spark-app.store](https://www.spark-app.store/)
 
 ## Project Information
 
