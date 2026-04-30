@@ -52,12 +52,14 @@ sudo apt install ./spark-store-tui_0.7.2-1_all.deb
 
 For Arch, Fedora, openSUSE and other non-Debian systems, install the runtime dependencies with your package manager, then install the script into `~/.local/bin`.
 
-Native package manager recipes are included under `packaging/`. After the AUR
-package is published, Arch users will be able to install with:
+Native package manager recipes are included under `packaging/`. Arch users can
+install from the AUR:
 
 ```bash
 yay -S spark-store-tui
 ```
+
+Package page: https://aur.archlinux.org/packages/spark-store-tui
 
 After a Fedora COPR repository is published, Fedora users will be able to install
 with:
@@ -90,7 +92,7 @@ sudo rpm-ostree install spark-store-tui
 systemctl reboot
 ```
 
-Until the AUR package is published, use the dependency commands below.
+If you prefer manual script installation, use the dependency commands below.
 
 ```bash
 # Arch / Manjaro with yay
