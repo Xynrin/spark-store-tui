@@ -1,11 +1,13 @@
 * text=auto
 *.md text eol=lf
+*.txt text eol=lf
 COPYING text eol=lf
 Makefile text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf
 package-root/DEBIAN/* text eol=lf
 package-root/usr/bin/spark-store-tui text eol=lf
+package-root/usr/share/doc/*/copyright text eol=lf
 *.gz binary
 *.deb binary
 *.tar.gz binary

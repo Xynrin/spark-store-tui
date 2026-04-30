@@ -3,6 +3,9 @@
 spark-store-tui is a terminal UI for browsing Spark Store and APM Store metadata. It is implemented with Bash, fzf, curl, jq and aria2c, and can show application lists, details, image previews and Metalink-based package downloads from the terminal.
 
 License: GPL-3.0-only.
+Author: Xynrin.
+Maintainer: Xynrin <xynrin@163.com>.
+Homepage: https://github.com/Xynrin/spark-store-tui.
 
 ## Features
 
@@ -65,3 +68,10 @@ On non-Debian systems, including Arch, Fedora, openSUSE, Manjaro and EndeavourOS
 ## License
 
 spark-store-tui is distributed under GPL-3.0-only. See `COPYING` for the full license text.
+
+## Project Information
+
+- Author: Xynrin
+- Maintainer: Xynrin <xynrin@163.com>
+- Homepage: https://github.com/Xynrin/spark-store-tui
+- Repository: https://github.com/Xynrin/spark-store-tui

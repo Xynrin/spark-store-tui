@@ -1,6 +1,8 @@
 应用名称：Spark Store TUI
 包名：spark-store-tui
 版本：0.7.2-1
+作者：Xynrin
+维护者：xynrin@163.com
 许可证：GPL-3.0-only
 分类建议：工具 / 系统工具 / 开发工具
 一句话简介：一个用于浏览 Spark Store 与 APM Store 的终端 TUI 工具。

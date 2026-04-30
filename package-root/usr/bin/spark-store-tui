@@ -3,6 +3,8 @@ set -u
 
 # Spark Store / APM Store TUI
 # Installed command: spark-store-tui
+# Author: Xynrin
+# License: GPL-3.0-only
 #
 # Environment:
 #   MODE=auto|spark|apm|choose

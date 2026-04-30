@@ -9,3 +9,4 @@
 - 改进：`KEEP_DOWNLOADS=1` 可保留下载目录。
 - 改进：aria2c 默认不刷屏。
 - 许可证：GPL-3.0-only。
+- 作者：Xynrin。

@@ -3,7 +3,10 @@
 - 包名：`spark-store-tui`
 - 版本：`0.7.2-1`
 - 架构：`all`
+- 作者：`Xynrin`
+- 维护者：`Xynrin <xynrin@163.com>`
 - 许可证：`GPL-3.0-only`
+- Homepage：`https://github.com/Xynrin/spark-store-tui`
 - 根目录包含 `COPYING`
 - Debian copyright 声明 `GPL-3.0-only`
 - README 声明 `License: GPL-3.0-only`
