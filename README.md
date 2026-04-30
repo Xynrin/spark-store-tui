@@ -24,7 +24,11 @@ Homepage: https://github.com/Xynrin/spark-store-tui.
 ### APT Repository
 
 ```bash
-printf '%s\n' 'deb [trusted=yes] https://xynrin.github.io/spark-store-tui stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
+sudo apt update
+sudo apt install -y ca-certificates curl
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://xynrin.github.io/spark-store-tui/spark-store-tui-archive-keyring.gpg | sudo tee /etc/apt/keyrings/spark-store-tui-archive-keyring.gpg >/dev/null
+printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/spark-store-tui-archive-keyring.gpg] https://xynrin.github.io/spark-store-tui stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
 sudo apt update
 sudo apt install spark-store-tui
 ```
