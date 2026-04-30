@@ -1,11 +1,11 @@
-# spark-store-tui
+﻿# spark-store-tui
 
 spark-store-tui is a terminal UI for browsing Spark Store and APM Store metadata. It is implemented with Bash, fzf, curl, jq and aria2c, and can show application lists, details, image previews and Metalink-based package downloads from the terminal.
 
 License: GPL-3.0-only.
 Author: Xynrin.
 Maintainer: Xynrin <xynrin@163.com>.
-Homepage: https://github.com/Xynrin/spark-store-tui.
+Homepage: https://gitee.com/Xynrin/spark-store-tui.
 
 ## Features
 
@@ -23,14 +23,16 @@ Homepage: https://github.com/Xynrin/spark-store-tui.
 
 ### Signed APT Repository
 
+This Gitee mirror hosts the APT repository under the pt/ directory for domestic users.
+
 For Debian-like distributions such as deepin, UOS, Debian, Ubuntu, Kylin and Linux Mint:
 
 ```bash
 sudo apt update
 sudo apt install -y ca-certificates curl
 sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL https://xynrin.github.io/spark-store-tui/spark-store-tui-archive-keyring.gpg | sudo tee /etc/apt/keyrings/spark-store-tui-archive-keyring.gpg >/dev/null
-printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/spark-store-tui-archive-keyring.gpg] https://xynrin.github.io/spark-store-tui stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
+curl -fsSL https://gitee.com/Xynrin/spark-store-tui/raw/master/apt/spark-store-tui-archive-keyring.gpg | sudo tee /etc/apt/keyrings/spark-store-tui-archive-keyring.gpg >/dev/null
+printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/spark-store-tui-archive-keyring.gpg] https://gitee.com/Xynrin/spark-store-tui/raw/master/apt stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
 sudo apt update
 sudo apt install spark-store-tui
 ```
@@ -44,7 +46,7 @@ Signing key fingerprint:
 ### Local DEB
 
 ```bash
-curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.7.2/spark-store-tui_0.7.2-1_all.deb
+curl -LO https://gitee.com/Xynrin/spark-store-tui/raw/master/apt/pool/main/s/spark-store-tui/spark-store-tui_0.7.2-1_all.deb
 sudo apt install ./spark-store-tui_0.7.2-1_all.deb
 ```
 
@@ -65,7 +67,7 @@ sudo zypper install -y bash curl jq fzf aria2 ca-certificates chafa
 
 ```bash
 mkdir -p ~/.local/bin
-curl -fsSL https://raw.githubusercontent.com/Xynrin/spark-store-tui/main/package-root/usr/bin/spark-store-tui -o ~/.local/bin/spark-store-tui
+curl -fsSL https://gitee.com/Xynrin/spark-store-tui/raw/master/package-root/usr/bin/spark-store-tui -o ~/.local/bin/spark-store-tui
 chmod +x ~/.local/bin/spark-store-tui
 export PATH="$HOME/.local/bin:$PATH"
 MODE=apm spark-store-tui
@@ -128,5 +130,6 @@ spark-store-tui is distributed under GPL-3.0-only. See `COPYING` for the full li
 
 - Author: Xynrin
 - Maintainer: Xynrin <xynrin@163.com>
-- Homepage: https://github.com/Xynrin/spark-store-tui
-- Repository: https://github.com/Xynrin/spark-store-tui
+- Homepage: https://gitee.com/Xynrin/spark-store-tui
+- Repository: https://gitee.com/Xynrin/spark-store-tui
+- GitHub upstream: https://github.com/Xynrin/spark-store-tui
