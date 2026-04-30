@@ -53,11 +53,18 @@ sudo apt install ./spark-store-tui_0.7.2-1_all.deb
 For Arch, Fedora, openSUSE and other non-Debian systems, install the runtime dependencies with your package manager, then install the script into `~/.local/bin`.
 
 ```bash
-# Arch / Manjaro
+# Arch / Manjaro with yay
+yay -S --needed bash curl jq fzf aria2 ca-certificates chafa
+
+# Arch / Manjaro without yay
 sudo pacman -S --needed bash curl jq fzf aria2 ca-certificates chafa
 
-# Fedora
+# Fedora Workstation / Server
 sudo dnf install -y bash curl jq fzf aria2 ca-certificates chafa
+
+# Fedora Atomic / Silverblue / Kinoite
+sudo rpm-ostree install bash curl jq fzf aria2 ca-certificates chafa
+systemctl reboot
 
 # openSUSE
 sudo zypper install -y bash curl jq fzf aria2 ca-certificates chafa
