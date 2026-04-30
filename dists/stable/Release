@@ -1,0 +1,17 @@
+Origin: Spark Store TUI
+Label: Spark Store TUI
+Suite: stable
+Codename: stable
+Date: Thu, 30 Apr 2026 09:36:04 GMT
+Architectures: all
+Components: main
+Description: APT repository for Spark Store TUI
+MD5Sum:
+ cfa0559951a123a9e45b4607f82f5753 1102 main/binary-all/Packages
+ ef18d4cfcf12370f359c31fd96a44caf 683 main/binary-all/Packages.gz
+SHA1:
+ 3784032c53965d129cd45a4067f1ae43be4f514b 1102 main/binary-all/Packages
+ a2906d1c689defb9d58ab8fa584a1230cefd49a1 683 main/binary-all/Packages.gz
+SHA256:
+ 00abdedffbbbea059e226ba20a5b7b9bb8406e0431083c54425a4cc92b8202ac 1102 main/binary-all/Packages
+ e7bce8d70b8ff22942f4bede609b7bc6e06242400d15982c464bf7d7059542e2 683 main/binary-all/Packages.gz
