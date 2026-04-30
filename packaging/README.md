@@ -5,11 +5,10 @@ install dependencies automatically.
 
 ## Arch Linux / AUR
 
-`yay` searches the Arch repositories and AUR, not ArchWiki. To make this
-package searchable with `yay -Ss spark-store-tui`, publish `packaging/aur` to
-the AUR package repository named `spark-store-tui`.
+`yay` searches the Arch repositories and AUR, not ArchWiki. The package is
+published at https://aur.archlinux.org/packages/spark-store-tui.
 
-Expected user command after AUR publication:
+User command:
 
 ```bash
 yay -S spark-store-tui
