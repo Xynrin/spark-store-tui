@@ -1,12 +1,14 @@
 # Native Package Manager Publishing
 
-This directory contains packaging templates for package managers that can
-install dependencies automatically.
+This directory contains packaging templates for package managers that can install dependencies automatically.
 
 ## Arch Linux / AUR
 
-`yay` searches the Arch repositories and AUR, not ArchWiki. The package is
-published at https://aur.archlinux.org/packages/spark-store-tui.
+`yay` searches the Arch repositories and AUR, not ArchWiki. The package is published at:
+
+```text
+https://aur.archlinux.org/packages/spark-store-tui
+```
 
 User command:
 
@@ -21,7 +23,7 @@ git clone ssh://aur@aur.archlinux.org/spark-store-tui.git
 cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO spark-store-tui/
 cd spark-store-tui
 git add PKGBUILD .SRCINFO
-git commit -m "add spark-store-tui"
+git commit -m "update spark-store-tui"
 git push
 ```
 
@@ -31,28 +33,12 @@ Regenerate `.SRCINFO` whenever `PKGBUILD` metadata changes:
 makepkg --printsrcinfo > .SRCINFO
 ```
 
-## Fedora / COPR
+## Fedora / DNF / RPM
 
 For Fedora, this repository can be used in two ways:
 
-- a self-hosted RPM repository under GitHub Pages or the Gitee mirror
+- a self-hosted RPM repository under GitHub Pages or the Gitee organization mirror
 - a COPR repository for a more native Fedora workflow
-
-Expected user commands after COPR publication:
-
-```bash
-sudo dnf copr enable xynrin/spark-store-tui
-sudo dnf install spark-store-tui
-```
-
-Fedora Atomic, Silverblue and Kinoite users can enable the same COPR, then layer
-the package:
-
-```bash
-sudo dnf copr enable xynrin/spark-store-tui
-sudo rpm-ostree install spark-store-tui
-systemctl reboot
-```
 
 Self-hosted RPM repository commands:
 
@@ -65,6 +51,34 @@ enabled=1
 gpgcheck=0
 repo_gpgcheck=0
 EOF
+sudo dnf install spark-store-tui
+```
+
+Domestic Gitee mirror:
+
+```bash
+sudo tee /etc/yum.repos.d/spark-store-tui.repo >/dev/null <<'EOF'
+[spark-store-tui]
+name=Spark Store TUI
+baseurl=https://gitee.com/spark-store-project/spark-store-tui/raw/master/rpm
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+EOF
+sudo dnf install spark-store-tui
+```
+
+Fedora Atomic, Silverblue and Kinoite users can use the same repository, then layer the package:
+
+```bash
+sudo rpm-ostree install spark-store-tui
+systemctl reboot
+```
+
+Expected user commands after COPR publication:
+
+```bash
+sudo dnf copr enable xynrin/spark-store-tui
 sudo dnf install spark-store-tui
 ```
 
