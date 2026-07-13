@@ -25,7 +25,6 @@
 
 当前稳定版：**0.8.3**。
 
-[![星火计划 Project Spark/spark-store-tui](https://gitee.com/spark-store-project/spark-store-tui/widgets/widget_card.svg?colors=4183c4,ffffff,ffffff,e3e9ed,666666,9b9b9b)](https://gitee.com/spark-store-project/spark-store-tui)
 ## 功能
 
 - 自动识别 Debian/Ubuntu、Arch、Fedora/RHEL 与 openSUSE，以及 `x86_64` / `aarch64` / `loongarch64` 架构。
