@@ -251,6 +251,9 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui-0.8.3-1.x86_64.rpm' ] && checksum='9ebc97d5dd57fb16acdf2b9de3ef46c5780af6cc19ccd1e40578bf5e152b6b77'
     [ "$asset" = 'spark-store-tui-0.8.3-1.aarch64.rpm' ] && checksum='b0d6cc7a24e158191ef97d1ff16e1dc211ead8309216d9b1b9cee048f0add9f1'
     [ "$asset" = 'spark-store-tui-0.8.3-1.loongarch64.rpm' ] && checksum='eb7687d525c63592f84f02500bad97acc945787149bc0cc127e02f57d2f6229b'
+    [ "$asset" = 'spark-store-tui-0.8.3-2.x86_64.rpm' ] && checksum='18511e142a9ee050f905c749a6e148cd2988842bf4d94ccdce2079eabbab73b8'
+    [ "$asset" = 'spark-store-tui-0.8.3-2.aarch64.rpm' ] && checksum='bf6d93faa75b17a3049586eab806117456baa8685558011cda4ff9e4667a4fea'
+    [ "$asset" = 'spark-store-tui-0.8.3-2.loongarch64.rpm' ] && checksum='f490edb3904fe4f95ccd2cbffe5517335874c085c41c6e80ad00efddb93de92d'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       if [ "$FAMILY" = rpm ]; then
