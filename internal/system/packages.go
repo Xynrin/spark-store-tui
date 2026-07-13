@@ -23,7 +23,7 @@ func UninstallCommand(host Host, app domain.App) (string, error) {
 	}
 	switch host.Family {
 	case "deb":
-		return "sudo apt-get remove -y " + packageName, nil
+		return "sudo aptss remove " + packageName + " -y", nil
 	case "arch", "rpm", "suse":
 		return "sudo apm remove -y " + packageName, nil
 	default:
@@ -55,7 +55,7 @@ func InstallProcess(host Host, app domain.App, packagePath string) (*exec.Cmd, e
 		if format != ".deb" {
 			return nil, fmt.Errorf("Debian family cannot install %s automatically", format)
 		}
-		return privilegedCommand("apt-get", "install", "-y", packagePath), nil
+		return debianInstallProcess(packagePath, exec.LookPath, defaultSSInstallPaths)
 	case "rpm":
 		if format != ".rpm" {
 			return nil, fmt.Errorf("RPM family cannot install %s automatically", format)
@@ -78,7 +78,11 @@ func UninstallProcess(host Host, app domain.App) (*exec.Cmd, error) {
 	}
 	switch host.Family {
 	case "deb":
-		return privilegedCommand("apt-get", "remove", "-y", packageName), nil
+		aptss, err := exec.LookPath("aptss")
+		if err != nil {
+			return nil, fmt.Errorf("Debian 系安装和卸载星火应用需要 aptss 或 Spark Store：%w", err)
+		}
+		return privilegedCommand(aptss, "remove", packageName, "-y"), nil
 	case "arch", "rpm", "suse":
 		if _, err := exec.LookPath("apm"); err != nil {
 			return nil, fmt.Errorf("此发行版卸载星火应用需要 Amber APM（apm）：%w", err)
@@ -87,6 +91,32 @@ func UninstallProcess(host Host, app domain.App) (*exec.Cmd, error) {
 	default:
 		return nil, fmt.Errorf("uninstall is not configured for %s", host.Family)
 	}
+}
+
+var defaultSSInstallPaths = []string{
+	"/usr/bin/ssinstall",
+	"/usr/local/bin/ssinstall",
+	"/opt/durapps/spark-store/bin/ssinstall",
+}
+
+// Spark Store's current Debian flow downloads the package from its Metalink
+// and delegates the local .deb to ssinstall. ssinstall handles Spark-specific
+// dependency and desktop integration; older installations that only expose
+// aptss remain supported as a fallback.
+func debianInstallProcess(packagePath string, lookPath func(string) (string, error), ssinstallPaths []string) (*exec.Cmd, error) {
+	if ssinstall, err := lookPath("ssinstall"); err == nil {
+		return privilegedCommand(ssinstall, packagePath), nil
+	}
+	for _, candidate := range ssinstallPaths {
+		info, err := os.Stat(candidate)
+		if err == nil && info.Mode().IsRegular() && info.Mode().Perm()&0o111 != 0 {
+			return privilegedCommand(candidate, packagePath), nil
+		}
+	}
+	if aptss, err := lookPath("aptss"); err == nil {
+		return privilegedCommand(aptss, "install", packagePath, "-y"), nil
+	}
+	return nil, fmt.Errorf("Debian 系安装星火应用需要 aptss 或 Spark Store；请先安装官方 aptss 后重试")
 }
 
 func packageNameForHost(host Host, app domain.App) string {

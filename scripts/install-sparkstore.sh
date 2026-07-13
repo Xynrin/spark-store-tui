@@ -203,6 +203,25 @@ verify() {
   [ "$actual" = "$expected" ] || { echo "SHA-256 校验失败：$file" >&2; exit 1; }
 }
 
+# Debian application installation is delegated to Spark Store's official
+# ssinstall/aptss backend. aptss is not available from Ubuntu/Debian's default
+# repositories, so bootstrap the architecture-independent package from the
+# official Spark Store package server and verify its pinned SHA-256 first.
+ensure_debian_backend() {
+  [ "$FAMILY" = deb ] || return 0
+  command -v aptss >/dev/null 2>&1 && return 0
+  echo '正在补齐星火 Debian 安装后端 aptss…'
+  aptss_asset='aptss_4.8.1-1_all.deb'
+  aptss_checksum='cd95de3488f7e39ce0300b1e3ba38b0c9416871e68fb91098011ace26f057751'
+  if ! download "$TEMP_DIR/$aptss_asset" "https://d.spark-app.store/store/depends/$aptss_asset"; then
+    echo '无法从星火官方软件包服务器下载 aptss。' >&2
+    exit 1
+  fi
+  verify "$TEMP_DIR/$aptss_asset" "$aptss_checksum"
+  "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$aptss_asset"
+  command -v aptss >/dev/null 2>&1 || { echo 'aptss 安装完成但命令不可用。' >&2; exit 1; }
+}
+
 release_url() {
   asset="$1"
   if [ "$MIRROR" = github ]; then
@@ -231,6 +250,7 @@ install_source() {
     rpm) "${SUDO[@]}" dnf install -y git golang ca-certificates ;;
     suse) "${SUDO[@]}" zypper --non-interactive install git go ca-certificates ;;
   esac
+  ensure_debian_backend
   command -v go >/dev/null || { echo '未能安装 Go。' >&2; exit 1; }
   go_version=$(go env GOVERSION | sed 's/^go//')
   if [ "$(printf '1.25\n%s\n' "$go_version" | sort -V | head -n1)" != 1.25 ]; then
@@ -272,6 +292,7 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui_0.8.3-1_loong64.deb' ] && checksum='13646a6640f272530850f84c21a29ccf2c1d159935c7fde8caad9f18ec7f2517'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
+      ensure_debian_backend
       "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$asset"
       ensure_image_preview
     else

@@ -28,7 +28,7 @@ func TestFamilyAndArchitecture(t *testing.T) {
 
 func TestUninstallCommand(t *testing.T) {
 	command, err := UninstallCommand(Host{Family: "deb"}, domain.App{Name: "Code", PackageName: "code"})
-	if err != nil || command != "sudo apt-get remove -y code" {
+	if err != nil || command != "sudo aptss remove code -y" {
 		t.Fatalf("command = %q, err = %v", command, err)
 	}
 	if _, err := UninstallCommand(Host{Family: "deb"}, domain.App{PackageName: "code;rm"}); err == nil {
@@ -37,9 +37,40 @@ func TestUninstallCommand(t *testing.T) {
 }
 
 func TestInstallProcess(t *testing.T) {
-	process, err := InstallProcess(Host{Family: "deb"}, domain.App{}, "/tmp/code.deb")
-	if err != nil || process.Path == "" || !contains(process.Args, "install") {
+	process, err := debianInstallProcess("/tmp/code.deb", func(name string) (string, error) {
+		if name == "ssinstall" {
+			return "/test/bin/ssinstall", nil
+		}
+		return "", os.ErrNotExist
+	}, nil)
+	if err != nil || process.Path == "" || !contains(process.Args, "/tmp/code.deb") {
 		t.Fatalf("process = %+v, err = %v", process, err)
+	}
+	want := []string{"/test/bin/ssinstall", "/tmp/code.deb"}
+	if os.Geteuid() != 0 {
+		want = append([]string{"sudo"}, want...)
+	}
+	if got := process.Args; !reflect.DeepEqual(got, want) {
+		t.Fatalf("arguments = %q, want %q", got, want)
+	}
+}
+
+func TestInstallProcessFallsBackToAPTSS(t *testing.T) {
+	process, err := debianInstallProcess("/tmp/code.deb", func(name string) (string, error) {
+		if name == "aptss" {
+			return "/test/bin/aptss", nil
+		}
+		return "", os.ErrNotExist
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"/test/bin/aptss", "install", "/tmp/code.deb", "-y"}
+	if os.Geteuid() != 0 {
+		want = append([]string{"sudo"}, want...)
+	}
+	if got := process.Args; !reflect.DeepEqual(got, want) {
+		t.Fatalf("arguments = %q, want %q", got, want)
 	}
 }
 
@@ -111,8 +142,19 @@ func TestPrivilegedCommandOnlyUsesSudoForNonRoot(t *testing.T) {
 	}
 }
 
+func TestDebianInstallProcessRequiresOfficialBackend(t *testing.T) {
+	process, err := debianInstallProcess("/tmp/code.deb", func(string) (string, error) {
+		return "", os.ErrNotExist
+	}, nil)
+	if err == nil || process != nil {
+		t.Fatalf("process = %+v, err = %v", process, err)
+	}
+}
+
 func TestInstallProcessSkipsSudoForCurrentRootUser(t *testing.T) {
-	process, err := InstallProcess(Host{Family: "deb"}, domain.App{}, "/tmp/code.deb")
+	process, err := debianInstallProcess("/tmp/code.deb", func(name string) (string, error) {
+		return "/test/bin/ssinstall", nil
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
