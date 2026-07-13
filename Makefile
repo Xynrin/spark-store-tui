@@ -38,7 +38,7 @@ build:
 
 source:
 	@temporary=$$(mktemp); \
-	tar --exclude='.git' --exclude='*.deb' --exclude='*.rpm' --exclude='*.tar.gz' --exclude='.cache' --exclude='build' --exclude='dist' --exclude='package-root/tmp' --exclude='./packaging/aur/PKGBUILD' --exclude='./packaging/aur/.SRCINFO' --transform='s,^,$(SOURCE_DIR)/,' -czf "$$temporary" .; \
+	tar --exclude='.git' --exclude='*.deb' --exclude='*.rpm' --exclude='*.tar.gz' --exclude='.cache' --exclude='build' --exclude='dist' --exclude='apt' --exclude='rpm' --exclude='package-root/tmp' --exclude='./packaging/aur/PKGBUILD' --exclude='./packaging/aur/.SRCINFO' --transform='s,^,$(SOURCE_DIR)/,' -czf "$$temporary" .; \
 	mv "$$temporary" $(SOURCE_TAR)
 
 local-install: build
