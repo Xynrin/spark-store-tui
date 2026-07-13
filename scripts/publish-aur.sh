@@ -10,6 +10,8 @@ install -m 0644 "$root/packaging/aur/PKGBUILD" "$workdir/spark-store-tui/PKGBUIL
 install -m 0644 "$root/packaging/aur/.SRCINFO" "$workdir/spark-store-tui/.SRCINFO"
 
 cd "$workdir/spark-store-tui"
+git config user.name "${GIT_AUTHOR_NAME:-Xynrin}"
+git config user.email "${GIT_AUTHOR_EMAIL:-xynrin@163.com}"
 if git diff --quiet; then
   echo 'AUR package is already current.'
   exit 0

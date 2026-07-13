@@ -1,0 +1,36 @@
+name: Publish AUR package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    # Secrets are only exposed to runs started from the protected default branch.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: aur-publish
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Configure AUR deploy key
+        env:
+          AUR_DEPLOY_KEY: ${{ secrets.AUR_DEPLOY_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s' "$AUR_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat >> ~/.ssh/known_hosts <<'EOF'
+          aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN
+          EOF
+
+      - name: Publish package metadata
+        env:
+          GIT_AUTHOR_NAME: Xynrin
+          GIT_AUTHOR_EMAIL: xynrin@163.com
+        run: scripts/publish-aur.sh
