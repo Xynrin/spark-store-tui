@@ -7,12 +7,12 @@
 <p align="center">星火终端助手 · 原生 Linux 软件管理终端界面</p>
 
 <p align="center">
-    本项目附属于星火商店
-  <a href="https://gitee.com/spark-store-project/spark-store-tui">
+  <a href="https://gitee.com/spark-store-project">
     <img src="https://foruda.gitee.com/avatar/1758374023182638862/6258778_spark-store-project_1758374023.png!avatar100" height="44" alt="星火商店 Spark Store">
+    <br>
+    <strong>本项目附属于星火商店</strong>
   </a>
 </p>
-
 
 <p align="center">
   <a href="https://github.com/Xynrin/spark-store-tui/releases/tag/v0.8.3"><img src="https://img.shields.io/github/v/release/Xynrin/spark-store-tui?label=Release&color=ff9d2e" alt="GitHub Release"></a>
