@@ -112,9 +112,23 @@ ensure_amber_runtime() {
 if [ "$FAMILY" = arch ]; then
   command -v yay >/dev/null || { echo 'Arch 系统请先安装 yay。' >&2; exit 1; }
   aur_version=$(yay -Si spark-store-tui 2>/dev/null | awk -F: '/^Version[[:space:]]*:/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
-  case "$aur_version" in "$RELEASE_VERSION"-*|"$RELEASE_VERSION") ;; *)
-    echo "AUR 当前版本为 ${aur_version:-未找到}，尚未发布 $RELEASE_VERSION；为避免安装旧版已停止。" >&2
-    exit 1
+  case "$aur_version" in
+    "$RELEASE_VERSION"-*|"$RELEASE_VERSION") ;;
+    *)
+      # The AUR RPC index can lag behind a successful Git push. Check the
+      # published PKGBUILD without executing it before rejecting the install.
+      aur_probe=$(mktemp -d)
+      aur_pkgver=""
+      if git clone -q --depth 1 https://aur.archlinux.org/spark-store-tui.git "$aur_probe/repository"; then
+        aur_pkgver=$(awk -F= '/^pkgver=/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$aur_probe/repository/PKGBUILD")
+      fi
+      rm -rf "$aur_probe"
+      if [ "$aur_pkgver" != "$RELEASE_VERSION" ]; then
+        echo "AUR 当前版本为 ${aur_version:-未找到}，尚未发布 $RELEASE_VERSION；为避免安装旧版已停止。" >&2
+        exit 1
+      fi
+      echo "AUR API 尚未刷新（当前 ${aur_version:-未知}），已从 AUR Git 确认 $RELEASE_VERSION。"
+      ;;
   esac
   yay -S --needed spark-store-tui
   ensure_image_preview
