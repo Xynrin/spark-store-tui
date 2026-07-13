@@ -55,6 +55,8 @@ esac
 case "$(uname -m)" in
   x86_64|amd64) DEB_ARCH="amd64"; RPM_ARCH="x86_64" ;;
   aarch64|arm64) DEB_ARCH="arm64"; RPM_ARCH="aarch64" ;;
+  loongarch64) DEB_ARCH="loong64"; RPM_ARCH="loongarch64" ;;
+  riscv64) DEB_ARCH="riscv64"; RPM_ARCH="riscv64" ;;
   *) echo "不支持的 CPU 架构：$(uname -m)" >&2; exit 1 ;;
 esac
 

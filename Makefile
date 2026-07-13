@@ -28,7 +28,7 @@ build:
 	find "$$stage/$(PKGROOT)" -type f -exec chmod 0644 {} +; \
 	rm -f "$$stage/$(PKGROOT)/usr/bin/spark-store-tui"; \
 	mkdir -p "$$stage/$(PKGROOT)/usr/lib/sparkstore"; \
-	goarch=$$(case "$(ARCH)" in amd64) echo amd64 ;; arm64) echo arm64 ;; *) echo "$(ARCH)" ;; esac); \
+	goarch=$$(case "$(ARCH)" in amd64) echo amd64 ;; arm64) echo arm64 ;; loong64) echo loong64 ;; riscv64) echo riscv64 ;; *) echo "$(ARCH)" ;; esac); \
 	GOOS=linux GOARCH=$$goarch CGO_ENABLED=0 go build -buildvcs=false -o "$$stage/$(PKGROOT)/usr/lib/sparkstore/sparkstore" ./cmd/spark-store-tui; \
 	find "$$stage/$(PKGROOT)" -type d -exec chmod 0755 {} +; \
 	chmod 0755 "$$stage/$(PKGROOT)/usr/bin/sparkstore" "$$stage/$(PKGROOT)/usr/lib/sparkstore/sparkstore" "$$stage/$(PKGROOT)/DEBIAN/postinst" "$$stage/$(PKGROOT)/DEBIAN/postrm"; \

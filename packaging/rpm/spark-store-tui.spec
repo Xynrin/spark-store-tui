@@ -12,6 +12,19 @@ Requires:       ca-certificates
 Recommends:     chafa
 Recommends:     sudo
 
+%ifarch x86_64
+%global sparkstore_goarch amd64
+%endif
+%ifarch aarch64
+%global sparkstore_goarch arm64
+%endif
+%ifarch loongarch64
+%global sparkstore_goarch loong64
+%endif
+%ifarch riscv64
+%global sparkstore_goarch riscv64
+%endif
+
 %description
 Spark Store TUI is a native Go terminal interface for browsing official Spark
 Store metadata, downloading packages through official Metalink mirrors, and
@@ -22,7 +35,7 @@ on the next start and can be resumed from the application.
 %autosetup -n %{name}-source-%{version}
 
 %build
-CGO_ENABLED=0 go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
+CGO_ENABLED=0 GOOS=linux GOARCH=%{sparkstore_goarch} go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
 
 %install
 install -Dm0755 sparkstore %{buildroot}%{_libexecdir}/sparkstore/sparkstore

@@ -22,18 +22,23 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y rpm
       - name: Verify Go module
         run: make check
-      - name: Build Debian package and source archive
+      - name: Build Debian packages and source archive
         run: |
-          make build
           make source
           mkdir -p dist
-          mv spark-store-tui_*.deb spark-store-tui-source-*.tar.gz dist/
-      - name: Build RPM package
+          mv spark-store-tui-source-*.tar.gz dist/
+          for arch in amd64 arm64; do
+            make ARCH="$arch" build
+            mv "spark-store-tui_"*"_${arch}.deb" dist/
+          done
+      - name: Build RPM packages
         run: |
           mkdir -p "$HOME/rpmbuild/SOURCES" "$HOME/rpmbuild/SPECS"
           cp dist/spark-store-tui-source-*.tar.gz "$HOME/rpmbuild/SOURCES/"
           cp packaging/rpm/spark-store-tui.spec "$HOME/rpmbuild/SPECS/"
-          rpmbuild -bb --nodeps "$HOME/rpmbuild/SPECS/spark-store-tui.spec"
+          for target in x86_64 aarch64; do
+            rpmbuild -bb --nodeps --target "$target" "$HOME/rpmbuild/SPECS/spark-store-tui.spec"
+          done
           find "$HOME/rpmbuild/RPMS" -name '*.rpm' -exec cp {} dist/ \;
       - name: Publish release assets
         env:

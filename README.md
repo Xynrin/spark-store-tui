@@ -66,7 +66,20 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.0.tar.gz` |
 
-GitHub 与 Gitee Release 均已提供 `0.8.0` 的 Deb、RPM 和 source tarball。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
+`v0.8.0` 当前已上传的预编译附件为 `amd64` / `x86_64`。从下一次 Release 起，CI 会同时构建 `amd64` 与 `arm64` / `aarch64` 的 Deb、RPM。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
+
+### 麒麟 / 统信 / 信创架构
+
+发行版名称不是决定因素，先执行 `uname -m`：
+
+| `uname -m` | 常见设备 | 当前使用方式 |
+|---|---|---|
+| `x86_64` | Intel / AMD 麒麟、统信 | 使用 `amd64` Deb 或 `x86_64` RPM |
+| `aarch64` | 鲲鹏、飞腾、兆芯 ARM 等 | 使用后续 Release 的 `arm64` Deb 或 `aarch64` RPM；在此之前从源码/AUR 构建 |
+| `loongarch64` | 龙芯新平台 | 当前从源码构建；打包规则已为 `loong64` / `loongarch64` 保留映射，待后续发布附件 |
+| 其他值 | 需单独确认 | 不要安装 amd64 包；优先源码构建并反馈 `uname -m` 输出 |
+
+星火 TUI 是纯 Go 程序，预编译包只影响安装便利性，不改变应用功能。麒麟 V10/统信既可能是 `x86_64`，也可能是 `aarch64` 或 `loongarch64`，不能仅凭系统名称下载包。
 
 ### Debian / Ubuntu
 
@@ -75,11 +88,11 @@ curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.8.0/spar
 sudo apt install ./spark-store-tui_0.8.0-1_amd64.deb
 ```
 
-arm64 设备将文件名中的 `amd64` 替换为 `arm64`。
+当 Release 附件中出现 `arm64` 时，aarch64 设备将文件名中的 `amd64` 替换为 `arm64`。当前 v0.8.0 的 ARM 设备请使用下方源码构建方式。
 
 ### 一键安装（选择 GitHub / Gitee）
 
-安装器会检测发行版和 CPU 架构；Deb/RPM 优先下载并校验对应发行包。Gitee 暂无对应附件时，会自动从 Gitee 同一 tag 构建。Arch 仍按 AUR 规则调用 `yay`，且不会降级安装旧版。
+安装器会检测发行版和 CPU 架构；Deb/RPM 优先下载并校验对应发行包。缺少本机架构附件时，它会明确询问是否从同一 tag 的源码构建，不会静默安装其他架构。Arch 仍按 AUR 规则调用 `yay`，且不会降级安装旧版。
 
 ```bash
 # GitHub
@@ -132,16 +145,16 @@ sudo zypper install ./spark-store-tui-0.8.0-1.x86_64.rpm
 
 ### Arch Linux / AUR
 
-目前 AUR 官方仓库仍是旧版 `0.7.2`，请勿使用 `yay -S spark-store-tui` 安装 0.8.0。可以从本仓库的最新 AUR 配方构建：
+已发布的 AUR Git 仓库为 `0.8.0`。AUR RPC/yay 索引在刚推送后可能短暂缓存旧版本；若 `yay -Si spark-store-tui` 仍显示 `0.7.2`，请等待索引同步，或直接从 AUR Git 仓库构建：
 
 ```bash
 sudo pacman -S --needed base-devel go git
-git clone https://github.com/Xynrin/spark-store-tui.git
-cd spark-store-tui/packaging/aur
+git clone https://aur.archlinux.org/spark-store-tui.git
+cd spark-store-tui
 makepkg -si
 ```
 
-发布到 AUR 后，上述命令可简化为 `yay -S spark-store-tui`。
+索引同步后可简化为 `yay -S spark-store-tui`。AUR 会在本机架构构建，因此适合 `aarch64` 与 `loongarch64` 等没有预编译附件的平台。
 
 ## 构建发布物
 
