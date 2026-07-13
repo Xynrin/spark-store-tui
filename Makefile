@@ -1,8 +1,9 @@
 VERSION := 0.8.3
+DEB_REVISION := 2
 PKGNAME := spark-store-tui
 PKGROOT := package-root
 ARCH ?= $(shell dpkg --print-architecture 2>/dev/null || echo amd64)
-DEB := $(PKGNAME)_$(VERSION)-1_$(ARCH).deb
+DEB := $(PKGNAME)_$(VERSION)-$(DEB_REVISION)_$(ARCH).deb
 SOURCE_TAR := $(PKGNAME)-source-$(VERSION).tar.gz
 SOURCE_DIR := $(PKGNAME)-source-$(VERSION)
 
@@ -32,7 +33,7 @@ build:
 	GOOS=linux GOARCH=$$goarch CGO_ENABLED=0 go build -buildvcs=false -o "$$stage/$(PKGROOT)/usr/lib/sparkstore/sparkstore" ./cmd/spark-store-tui; \
 	find "$$stage/$(PKGROOT)" -type d -exec chmod 0755 {} +; \
 	chmod 0755 "$$stage/$(PKGROOT)/usr/bin/sparkstore" "$$stage/$(PKGROOT)/usr/lib/sparkstore/sparkstore" "$$stage/$(PKGROOT)/DEBIAN/postinst" "$$stage/$(PKGROOT)/DEBIAN/postrm"; \
-	sed -i "s/^Version: .*/Version: $(VERSION)-1/; s/^Architecture: .*/Architecture: $(ARCH)/" "$$stage/$(PKGROOT)/DEBIAN/control"; \
+	sed -i "s/^Version: .*/Version: $(VERSION)-$(DEB_REVISION)/; s/^Architecture: .*/Architecture: $(ARCH)/" "$$stage/$(PKGROOT)/DEBIAN/control"; \
 	(cd "$$stage/$(PKGROOT)" && find usr -type f -print0 | sort -z | xargs -0 md5sum > DEBIAN/md5sums); \
 	dpkg-deb --build --root-owner-group "$$stage/$(PKGROOT)" $(DEB)
 

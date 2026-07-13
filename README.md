@@ -86,7 +86,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 
 | 平台 | 发布物 | 后缀 / 架构 |
 |---|---|---|
-| Debian / Ubuntu / UOS / 麒麟 | Debian 包 | `spark-store-tui_0.8.3-1_amd64.deb`、`..._arm64.deb`、`..._loong64.deb` |
+| Debian / Ubuntu / UOS / 麒麟 | Debian 包 | `spark-store-tui_0.8.3-2_amd64.deb`、`..._arm64.deb`、`..._loong64.deb` |
 | Fedora / RHEL / openSUSE / 银河麒麟 | RPM | `spark-store-tui-0.8.3-3.<arch>.rpm`（含 `loongarch64`） |
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.3-r3.tar.gz` |
@@ -113,8 +113,8 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 ```bash
 curl -LO https://d.spark-app.store/store/depends/aptss_4.8.1-1_all.deb
 echo 'cd95de3488f7e39ce0300b1e3ba38b0c9416871e68fb91098011ace26f057751  aptss_4.8.1-1_all.deb' | sha256sum -c -
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-1_amd64.deb
-sudo apt install ./aptss_4.8.1-1_all.deb ./spark-store-tui_0.8.3-1_amd64.deb
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-2_amd64.deb
+sudo apt install ./aptss_4.8.1-1_all.deb ./spark-store-tui_0.8.3-2_amd64.deb
 ```
 
 aarch64 设备将文件名中的 `amd64` 替换为 `arm64`；龙芯设备替换为 `loong64`。
@@ -134,8 +134,8 @@ bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/mast
 Debian / Ubuntu 已安装 `aptss` 或 Spark Store 时，可直接下载 Gitee Release：
 
 ```bash
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-1_amd64.deb
-sudo apt install ./spark-store-tui_0.8.3-1_amd64.deb
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-2_amd64.deb
+sudo apt install ./spark-store-tui_0.8.3-2_amd64.deb
 ```
 
 Gitee 也可用于源码构建：

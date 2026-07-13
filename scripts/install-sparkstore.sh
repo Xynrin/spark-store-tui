@@ -279,7 +279,9 @@ install_source() {
 
 case "$FAMILY" in
   deb)
-    asset="spark-store-tui_${RELEASE_VERSION}-1_${DEB_ARCH}.deb"
+    deb_release=1
+    [ "$RELEASE_VERSION" = '0.8.3' ] && deb_release=2
+    asset="spark-store-tui_${RELEASE_VERSION}-${deb_release}_${DEB_ARCH}.deb"
     checksum=""
     [ "$asset" = 'spark-store-tui_0.8.0-1_amd64.deb' ] && checksum='f081a2ed817410c72f810ca5cc97cd2cbbb4b6bec19cf8c15152d2264515f738'
     [ "$asset" = 'spark-store-tui_0.8.1-1_amd64.deb' ] && checksum='447f3f2ad66d00b07a42e8c057553c9a1d12c1fab250fcc0c1c0f3df07b7ddad'
@@ -287,9 +289,9 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui_0.8.2-1_amd64.deb' ] && checksum='53e872153e807a4ef0a7787792cff0a2e245a76df7b83d65ca8ff8c753c1ce2d'
     [ "$asset" = 'spark-store-tui_0.8.2-1_arm64.deb' ] && checksum='cba638b0822f9bd052a7dea8209f6cba6e705b74d9878a087a854d3053836e0d'
     [ "$asset" = 'spark-store-tui_0.8.2-1_loong64.deb' ] && checksum='4d2d26d0e9bcbe4fa905f41a6d27c0f94e687833628106bd02e6cfda45cb2999'
-    [ "$asset" = 'spark-store-tui_0.8.3-1_amd64.deb' ] && checksum='b46dbf0b0ec025e50c60d30e0e63b7ede7fa042f7603a990def0189b285ac943'
-    [ "$asset" = 'spark-store-tui_0.8.3-1_arm64.deb' ] && checksum='22bdf415b07f804aa08b800682c816c20bc08dc7db75ff836c86758bfb85a510'
-    [ "$asset" = 'spark-store-tui_0.8.3-1_loong64.deb' ] && checksum='13646a6640f272530850f84c21a29ccf2c1d159935c7fde8caad9f18ec7f2517'
+    [ "$asset" = 'spark-store-tui_0.8.3-2_amd64.deb' ] && checksum='5f9e3bf96540bf6fd20c78ca90607eb673b9f6b6f4ec77c5e557c464dff07db3'
+    [ "$asset" = 'spark-store-tui_0.8.3-2_arm64.deb' ] && checksum='bea80f2ab05b4670651ffcd997934a39c4c19e911d88350e62313409202db5fd'
+    [ "$asset" = 'spark-store-tui_0.8.3-2_loong64.deb' ] && checksum='6f674048df3df28de48b903097b2faa2bbb225c6ef3db4a8d1a9481415859a9d'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       ensure_debian_backend

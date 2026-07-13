@@ -1,5 +1,10 @@
 # spark-store-tui v0.8.3
 
+## Debian revision 0.8.3-2
+
+- Depend on `aptss | spark-store` and bootstrap the verified official `aptss` package in the one-command installer.
+- Install downloaded Deb packages through official `ssinstall` with an `aptss` fallback, and use `aptss` for removal.
+
 ## LoongArch release
 
 - Add `loong64` Debian package and `loongarch64` RPM package.
