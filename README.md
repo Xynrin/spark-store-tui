@@ -66,7 +66,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.0.tar.gz` |
 
-GitHub Release 是当前二进制发布渠道。Gitee 已同步相同的源码与 tag；Gitee Release 附件上传完成后会提供国内直连下载。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
+GitHub 与 Gitee Release 均已提供 `0.8.0` 的 Deb、RPM 和 source tarball。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
 
 ### Debian / Ubuntu
 
@@ -91,9 +91,16 @@ bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/mast
 
 运行后输入 `1` 选择 GitHub，输入 `2` 选择 Gitee；也可附带 `--mirror github` 或 `--mirror gitee` 跳过选择。
 
-### 国内网络 / Gitee 源码安装
+### 国内网络 / Gitee 安装
 
-Gitee 当前可稳定提供源码与 tag；无需 GitHub 即可本地构建：
+Debian / Ubuntu 可直接下载 Gitee Release：
+
+```bash
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.0/spark-store-tui_0.8.0-1_amd64.deb
+sudo apt install ./spark-store-tui_0.8.0-1_amd64.deb
+```
+
+Gitee 也可用于源码构建：
 
 ```bash
 git clone --depth 1 --branch v0.8.0 https://gitee.com/spark-store-project/spark-store-tui.git
@@ -103,7 +110,11 @@ sudo install -Dm755 sparkstore /usr/local/bin/sparkstore
 sparkstore
 ```
 
-完成 Gitee Release 附件同步后，此处会补充国内 `.deb` / `.rpm` 直链。
+RPM 直链：
+
+```text
+https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.0/spark-store-tui-0.8.0-1.x86_64.rpm
+```
 
 ### RPM 系统
 

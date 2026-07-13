@@ -27,6 +27,9 @@ $tagURL = "https://gitee.com/api/v5/repos/$owner/$repository/releases/tags/$Vers
 try {
     $release = Invoke-RestMethod -Method Get -Uri $tagURL -Headers $headers
 } catch {
+    $release = $null
+}
+if ($null -eq $release -or -not $release.id) {
     $body = @{
         tag_name         = $Version
         name             = "spark-store-tui $Version"
@@ -37,6 +40,9 @@ try {
 }
 
 Get-ChildItem -LiteralPath $AssetDirectory -File | ForEach-Object {
-    Invoke-RestMethod -Method Post -Uri "https://gitee.com/api/v5/repos/$owner/$repository/releases/$($release.id)/attach_files" -Headers $headers -Form @{ file = $_ } | Out-Null
+    & curl.exe --silent --show-error --fail-with-body -X POST -H "Authorization: Bearer $token" -F "file=@$($_.FullName)" "https://gitee.com/api/v5/repos/$owner/$repository/releases/$($release.id)/attach_files" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to upload $($_.Name)."
+    }
     Write-Host "Uploaded $($_.Name)"
 }
