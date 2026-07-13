@@ -206,13 +206,21 @@ install_source() {
   fi
   repo_url="https://github.com/$OWNER/$REPOSITORY.git"
   [ "$MIRROR" = gitee ] && repo_url="https://gitee.com/$GITEE_OWNER/$REPOSITORY.git"
-  git clone --depth 1 --branch "v$RELEASE_VERSION" "$repo_url" "$TEMP_DIR/source"
+  source_ref="refs/tags/v$RELEASE_VERSION"
+  # v0.8.3 predates the RPM/APM packaging revision. Pin its source fallback
+  # to the reviewed r2 snapshot instead of rebuilding the old tag.
+  [ "$RELEASE_VERSION" = '0.8.3' ] && source_ref='0fb4dd9774518c3f18f41a1a165332d304cd24ba'
+  git init -q "$TEMP_DIR/source"
+  git -C "$TEMP_DIR/source" remote add origin "$repo_url"
+  git -C "$TEMP_DIR/source" fetch --depth 1 origin "$source_ref"
+  git -C "$TEMP_DIR/source" checkout -q --detach FETCH_HEAD
   (
     cd "$TEMP_DIR/source"
     go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
     "${SUDO[@]}" install -Dm755 sparkstore /usr/local/bin/sparkstore
   )
   ensure_image_preview
+  [ "$FAMILY" != rpm ] || ensure_amber_runtime
   echo '安装完成：/usr/local/bin/sparkstore'
 }
 
