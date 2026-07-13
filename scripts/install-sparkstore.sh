@@ -81,6 +81,9 @@ if [ "$FAMILY" = arch ]; then
 fi
 
 TEMP_DIR=$(mktemp -d)
+# apt downloads local packages as the _apt user when possible.  Allow it to
+# traverse this temporary directory so installation stays sandboxed.
+chmod 755 "$TEMP_DIR"
 
 download() {
   destination="$1"; shift
