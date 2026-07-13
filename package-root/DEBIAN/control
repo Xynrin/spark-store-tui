@@ -4,9 +4,9 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: Xynrin <xynrin@163.com>
-Depends: ca-certificates
+Depends: ca-certificates, aptss | spark-store
 Recommends: chafa, sudo
-Homepage: https://github.com/Xynrin/spark-store-tui
+Homepage: https://gitee.com/spark-store-project/spark-store-tui
 Description: Native terminal UI for Spark Store software management
  Spark Store TUI is a Go terminal interface for browsing official Spark Store
  metadata, searching applications, downloading through official Metalink
