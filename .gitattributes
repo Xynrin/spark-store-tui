@@ -1,7 +1,20 @@
+* text=auto
+*.md text eol=lf
+*.txt text eol=lf
+COPYING text eol=lf
+Makefile text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+package-root/DEBIAN/* text eol=lf
+package-root/usr/bin/spark-store-tui text eol=lf
+package-root/usr/share/doc/*/copyright text eol=lf
 *.sh text eol=lf
 *.spec text eol=lf
-Makefile text eol=lf
 PKGBUILD text eol=lf
 .SRCINFO text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+*.gz binary
+*.deb binary
+*.rpm binary
+*.tar.gz binary
