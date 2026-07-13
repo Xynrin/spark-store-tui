@@ -16,6 +16,7 @@ Recommends:     sudo
 # inspect cross-compiled aarch64 binaries on the x86_64 release runner.
 %global __brp_strip %{nil}
 %global __brp_strip_comment_note %{nil}
+%global debug_package %{nil}
 
 %ifarch x86_64
 %global sparkstore_goarch amd64
@@ -40,7 +41,7 @@ on the next start and can be resumed from the application.
 %autosetup -n %{name}-source-%{version}
 
 %build
-CGO_ENABLED=0 GOOS=linux GOARCH=%{sparkstore_goarch} go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
+CGO_ENABLED=0 GOOS=linux GOARCH=%{sparkstore_goarch} go build -trimpath -buildvcs=false -o sparkstore ./cmd/spark-store-tui
 
 %install
 install -Dm0755 sparkstore %{buildroot}%{_libexecdir}/sparkstore/sparkstore
