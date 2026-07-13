@@ -1,8 +1,21 @@
-# Spark Store TUI / 星火终端助手
+<p align="center">
+  <img src="icon.png" width="180" alt="Spark Store TUI logo">
+</p>
 
-`sparkstore` 是面向 Linux 的原生终端应用管理器。它只读取 Spark Store 的公开 metadata，通过官方 Metalink 选择下载镜像，并在明确确认后调用当前发行版的包管理器安装或卸载本地软件包。
+<h1 align="center">Spark Store TUI</h1>
 
-当前版本：`0.8.0`。
+<p align="center">星火终端助手 · 原生 Linux 软件管理终端界面</p>
+
+<p align="center">
+  <a href="https://github.com/Xynrin/spark-store-tui/releases/tag/v0.8.0"><img src="https://img.shields.io/github/v/release/Xynrin/spark-store-tui?label=Release&color=ff9d2e" alt="GitHub Release"></a>
+  <a href="https://gitee.com/spark-store-project/spark-store-tui"><img src="https://img.shields.io/badge/Gitee-Source%20Mirror-C71D23?logo=gitee&logoColor=white" alt="Gitee source mirror"></a>
+  <a href="COPYING"><img src="https://img.shields.io/badge/License-GPL--3.0--only-4caf50" alt="GPL-3.0-only"></a>
+  <img src="https://img.shields.io/badge/Go-%3E%3D1.25-00ADD8?logo=go&logoColor=white" alt="Go 1.25 or newer">
+</p>
+
+> `sparkstore` 只读取 Spark Store 的公开 metadata，通过官方 Metalink 选择下载镜像，并在明确确认后调用本机包管理器安装或卸载软件。
+
+当前稳定版：**0.8.0**。
 
 ## 功能
 
@@ -53,7 +66,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.0.tar.gz` |
 
-GitHub Release 是当前二进制发布渠道。Gitee 已同步相同的源码与 tag；同步 Gitee Release 附件需要该仓库的 Gitee OpenAPI Personal Access Token。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
+GitHub Release 是当前二进制发布渠道。Gitee 已同步相同的源码与 tag；Gitee Release 附件上传完成后会提供国内直连下载。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
 
 ### Debian / Ubuntu
 
@@ -63,6 +76,34 @@ sudo apt install ./spark-store-tui_0.8.0-1_amd64.deb
 ```
 
 arm64 设备将文件名中的 `amd64` 替换为 `arm64`。
+
+### 一键安装（选择 GitHub / Gitee）
+
+安装器会检测发行版和 CPU 架构；Deb/RPM 优先下载并校验对应发行包。Gitee 暂无对应附件时，会自动从 Gitee 同一 tag 构建。Arch 仍按 AUR 规则调用 `yay`，且不会降级安装旧版。
+
+```bash
+# GitHub
+bash <(curl -fsSL https://raw.githubusercontent.com/Xynrin/spark-store-tui/main/scripts/install-sparkstore.sh)
+
+# Gitee
+bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/master/scripts/install-sparkstore.sh)
+```
+
+运行后输入 `1` 选择 GitHub，输入 `2` 选择 Gitee；也可附带 `--mirror github` 或 `--mirror gitee` 跳过选择。
+
+### 国内网络 / Gitee 源码安装
+
+Gitee 当前可稳定提供源码与 tag；无需 GitHub 即可本地构建：
+
+```bash
+git clone --depth 1 --branch v0.8.0 https://gitee.com/spark-store-project/spark-store-tui.git
+cd spark-store-tui
+go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
+sudo install -Dm755 sparkstore /usr/local/bin/sparkstore
+sparkstore
+```
+
+完成 Gitee Release 附件同步后，此处会补充国内 `.deb` / `.rpm` 直链。
 
 ### RPM 系统
 
@@ -80,11 +121,16 @@ sudo zypper install ./spark-store-tui-0.8.0-1.x86_64.rpm
 
 ### Arch Linux / AUR
 
-发布完成后：
+目前 AUR 官方仓库仍是旧版 `0.7.2`，请勿使用 `yay -S spark-store-tui` 安装 0.8.0。可以从本仓库的最新 AUR 配方构建：
 
 ```bash
-yay -S spark-store-tui
+sudo pacman -S --needed base-devel go git
+git clone https://github.com/Xynrin/spark-store-tui.git
+cd spark-store-tui/packaging/aur
+makepkg -si
 ```
+
+发布到 AUR 后，上述命令可简化为 `yay -S spark-store-tui`。
 
 ## 构建发布物
 
