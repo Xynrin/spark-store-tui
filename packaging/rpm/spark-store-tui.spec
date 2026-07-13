@@ -1,5 +1,5 @@
 Name:           spark-store-tui
-Version:        0.8.0
+Version:        0.8.1
 Release:        1%{?dist}
 Summary:        Native terminal UI for Spark Store software management
 
@@ -56,5 +56,5 @@ install -Dm0644 COPYING %{buildroot}%{_licensedir}/%{name}/COPYING
 %{_bindir}/spark-store-tui
 
 %changelog
-* Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.0-1
-- Native Go release with resumable download recovery
+* Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.1-1
+- Add AMD64 and ARM64 release artifacts

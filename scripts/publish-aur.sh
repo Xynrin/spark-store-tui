@@ -17,5 +17,6 @@ if git diff --quiet; then
   exit 0
 fi
 git add PKGBUILD .SRCINFO
-git commit -m 'spark-store-tui 0.8.0'
+version=$(awk -F= '/^pkgver=/ { print $2; exit }' PKGBUILD)
+git commit -m "spark-store-tui $version"
 git push

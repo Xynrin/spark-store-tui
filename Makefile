@@ -1,4 +1,4 @@
-VERSION := 0.8.0
+VERSION := 0.8.1
 PKGNAME := spark-store-tui
 PKGROOT := package-root
 ARCH ?= $(shell dpkg --print-architecture 2>/dev/null || echo amd64)

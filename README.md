@@ -7,7 +7,7 @@
 <p align="center">星火终端助手 · 原生 Linux 软件管理终端界面</p>
 
 <p align="center">
-  <a href="https://github.com/Xynrin/spark-store-tui/releases/tag/v0.8.0"><img src="https://img.shields.io/github/v/release/Xynrin/spark-store-tui?label=Release&color=ff9d2e" alt="GitHub Release"></a>
+  <a href="https://github.com/Xynrin/spark-store-tui/releases/tag/v0.8.1"><img src="https://img.shields.io/github/v/release/Xynrin/spark-store-tui?label=Release&color=ff9d2e" alt="GitHub Release"></a>
   <a href="https://gitee.com/spark-store-project/spark-store-tui"><img src="https://img.shields.io/badge/Gitee-Source%20Mirror-C71D23?logo=gitee&logoColor=white" alt="Gitee source mirror"></a>
   <a href="COPYING"><img src="https://img.shields.io/badge/License-GPL--3.0--only-4caf50" alt="GPL-3.0-only"></a>
   <img src="https://img.shields.io/badge/Go-%3E%3D1.25-00ADD8?logo=go&logoColor=white" alt="Go 1.25 or newer">
@@ -15,7 +15,7 @@
 
 > `sparkstore` 只读取 Spark Store 的公开 metadata，通过官方 Metalink 选择下载镜像，并在明确确认后调用本机包管理器安装或卸载软件。
 
-当前稳定版：**0.8.0**。
+当前稳定版：**0.8.1**。
 
 ## 功能
 
@@ -61,12 +61,12 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 
 | 平台 | 发布物 | 后缀 / 架构 |
 |---|---|---|
-| Debian / Ubuntu | Debian 包 | `spark-store-tui_0.8.0-1_amd64.deb`、`..._arm64.deb` |
-| Fedora / RHEL / openSUSE | RPM | `spark-store-tui-0.8.0-1.<arch>.rpm` |
+| Debian / Ubuntu | Debian 包 | `spark-store-tui_0.8.1-1_amd64.deb`、`..._arm64.deb` |
+| Fedora / RHEL / openSUSE | RPM | `spark-store-tui-0.8.1-1.<arch>.rpm` |
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
-| 通用构建 | 源码包 | `spark-store-tui-source-0.8.0.tar.gz` |
+| 通用构建 | 源码包 | `spark-store-tui-source-0.8.1.tar.gz` |
 
-`v0.8.0` 当前已上传的预编译附件为 `amd64` / `x86_64`。从下一次 Release 起，CI 会同时构建 `amd64` 与 `arm64` / `aarch64` 的 Deb、RPM。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
+`v0.8.1` 同时提供 `amd64` / `x86_64` 与 `arm64` / `aarch64` 的 Deb、RPM。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.1` 下载源。请只下载与本机架构匹配的包。
 
 ### 麒麟 / 统信 / 信创架构
 
@@ -84,11 +84,11 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 ### Debian / Ubuntu
 
 ```bash
-curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.8.0/spark-store-tui_0.8.0-1_amd64.deb
-sudo apt install ./spark-store-tui_0.8.0-1_amd64.deb
+curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.8.1/spark-store-tui_0.8.1-1_amd64.deb
+sudo apt install ./spark-store-tui_0.8.1-1_amd64.deb
 ```
 
-当 Release 附件中出现 `arm64` 时，aarch64 设备将文件名中的 `amd64` 替换为 `arm64`。当前 v0.8.0 的 ARM 设备请使用下方源码构建方式。
+aarch64 设备将文件名中的 `amd64` 替换为 `arm64`。
 
 ### 一键安装（选择 GitHub / Gitee）
 
@@ -109,14 +109,14 @@ bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/mast
 Debian / Ubuntu 可直接下载 Gitee Release：
 
 ```bash
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.0/spark-store-tui_0.8.0-1_amd64.deb
-sudo apt install ./spark-store-tui_0.8.0-1_amd64.deb
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.1/spark-store-tui_0.8.1-1_amd64.deb
+sudo apt install ./spark-store-tui_0.8.1-1_amd64.deb
 ```
 
 Gitee 也可用于源码构建：
 
 ```bash
-git clone --depth 1 --branch v0.8.0 https://gitee.com/spark-store-project/spark-store-tui.git
+git clone --depth 1 --branch v0.8.1 https://gitee.com/spark-store-project/spark-store-tui.git
 cd spark-store-tui
 go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
 sudo install -Dm755 sparkstore /usr/local/bin/sparkstore
@@ -126,7 +126,7 @@ sparkstore
 RPM 直链：
 
 ```text
-https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.0/spark-store-tui-0.8.0-1.x86_64.rpm
+https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.1/spark-store-tui-0.8.1-1.x86_64.rpm
 ```
 
 ### RPM 系统
@@ -134,18 +134,18 @@ https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.0/s
 下载对应发行版与架构的 `.rpm` 后执行：
 
 ```bash
-sudo dnf install ./spark-store-tui-0.8.0-1.x86_64.rpm
+sudo dnf install ./spark-store-tui-0.8.1-1.x86_64.rpm
 ```
 
 openSUSE 可使用：
 
 ```bash
-sudo zypper install ./spark-store-tui-0.8.0-1.x86_64.rpm
+sudo zypper install ./spark-store-tui-0.8.1-1.x86_64.rpm
 ```
 
 ### Arch Linux / AUR
 
-已发布的 AUR Git 仓库为 `0.8.0`。AUR RPC/yay 索引在刚推送后可能短暂缓存旧版本；若 `yay -Si spark-store-tui` 仍显示 `0.7.2`，请等待索引同步，或直接从 AUR Git 仓库构建：
+已发布的 AUR Git 仓库与当前 Release 保持相同版本。AUR RPC/yay 索引在刚推送后可能短暂缓存旧版本；若 `yay -Si spark-store-tui` 仍显示旧版本，请等待索引同步，或直接从 AUR Git 仓库构建：
 
 ```bash
 sudo pacman -S --needed base-devel go git
