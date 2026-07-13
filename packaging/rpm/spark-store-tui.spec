@@ -1,6 +1,6 @@
 Name:           spark-store-tui
 Version:        0.8.3
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Native terminal UI for Spark Store software management
 
 License:        GPL-3.0-only
@@ -61,5 +61,8 @@ install -Dm0644 COPYING %{buildroot}%{_licensedir}/%{name}/COPYING
 %{_bindir}/spark-store-tui
 
 %changelog
+* Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.3-2
+- Install Spark catalog applications through Amber APM on RPM systems
+
 * Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.3-1
 - Fix LoongArch metadata routing and package architecture validation

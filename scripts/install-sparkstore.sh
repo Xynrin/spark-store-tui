@@ -97,7 +97,7 @@ ensure_amber_runtime() {
   echo '正在补齐 Amber APM 运行环境…'
   case "$FAMILY" in
     arch)
-      if ! yay -S --needed spark-store; then
+      if ! yay -S --needed amber-package-manager; then
         echo '提示：Amber APM 安装失败；TUI 已安装，但 Arch 应用安装功能暂不可用。' >&2
       fi
       ;;
@@ -238,7 +238,9 @@ case "$FAMILY" in
     fi
     ;;
   rpm|suse)
-    asset="spark-store-tui-${RELEASE_VERSION}-1.${RPM_ARCH}.rpm"
+    rpm_release=1
+    [ "$RELEASE_VERSION" = '0.8.3' ] && rpm_release=2
+    asset="spark-store-tui-${RELEASE_VERSION}-${rpm_release}.${RPM_ARCH}.rpm"
     checksum=""
     [ "$asset" = 'spark-store-tui-0.8.0-1.x86_64.rpm' ] && checksum='e7e230456ddb0581c0dc3b45d1a620aa3cfe634344ccaddfa285023a05a545be'
     [ "$asset" = 'spark-store-tui-0.8.1-1.x86_64.rpm' ] && checksum='837fdd1085d2a943e8f8f895ba56782939f49bb9d1ad307f1a4787aca5c3b30f'

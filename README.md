@@ -70,7 +70,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | 平台 | 发布物 | 后缀 / 架构 |
 |---|---|---|
 | Debian / Ubuntu / UOS / 麒麟 | Debian 包 | `spark-store-tui_0.8.3-1_amd64.deb`、`..._arm64.deb`、`..._loong64.deb` |
-| Fedora / RHEL / openSUSE / 银河麒麟 | RPM | `spark-store-tui-0.8.3-1.<arch>.rpm`（含 `loongarch64`） |
+| Fedora / RHEL / openSUSE / 银河麒麟 | RPM | `spark-store-tui-0.8.3-2.<arch>.rpm`（含 `loongarch64`） |
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.3.tar.gz` |
 
@@ -100,7 +100,7 @@ aarch64 设备将文件名中的 `amd64` 替换为 `arm64`；龙芯设备替换�
 
 ### 一键安装（选择 GitHub / Gitee）
 
-安装器会检测发行版和 CPU 架构；Deb/RPM 优先下载并校验对应发行包。缺少本机架构附件时，它会明确询问是否从同一 tag 的源码构建，不会静默安装其他架构。Arch 仍按 AUR 规则调用 `yay`，且不会降级安装旧版。
+安装器会检测发行版和 CPU 架构；Deb/RPM 优先下载并校验对应发行包。缺少本机架构附件时，它会明确询问是否从同一 tag 的源码构建，不会静默安装其他架构。Arch 仍按 AUR 规则调用 `yay` 安装 TUI；Arch/Fedora 上的星火应用通过 Amber APM 安装。
 
 ```bash
 # GitHub
@@ -134,7 +134,7 @@ sparkstore
 RPM 直链：
 
 ```text
-https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui-0.8.3-1.x86_64.rpm
+https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui-0.8.3-2.x86_64.rpm
 ```
 
 ### RPM 系统
@@ -142,13 +142,13 @@ https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/s
 下载对应发行版与架构的 `.rpm` 后执行：
 
 ```bash
-sudo dnf install ./spark-store-tui-0.8.3-1.x86_64.rpm
+sudo dnf install ./spark-store-tui-0.8.3-2.x86_64.rpm
 ```
 
 openSUSE 可使用：
 
 ```bash
-sudo zypper install ./spark-store-tui-0.8.3-1.x86_64.rpm
+sudo zypper install ./spark-store-tui-0.8.3-2.x86_64.rpm
 ```
 
 ### Arch Linux / AUR
