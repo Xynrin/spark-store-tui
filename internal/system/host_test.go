@@ -43,6 +43,22 @@ func TestInstallProcess(t *testing.T) {
 	}
 }
 
+func TestInstallProcessUsesYayForArch(t *testing.T) {
+	bin := t.TempDir()
+	yay := bin + "/yay"
+	if err := os.WriteFile(yay, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
+	process, err := InstallProcess(Host{Family: "arch"}, domain.App{PackageName: "vscode"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := process.Args, []string{"yay", "-S", "--needed", "vscode"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("arguments = %q, want %q", got, want)
+	}
+}
+
 func contains(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {

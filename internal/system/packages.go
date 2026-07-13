@@ -38,22 +38,28 @@ func UninstallCommand(host Host, app domain.App) (string, error) {
 // InstallProcess constructs the native, local-file installation process. It
 // does not start the process; the TUI always asks for confirmation first.
 func InstallProcess(host Host, app domain.App, packagePath string) (*exec.Cmd, error) {
+	switch host.Family {
+	case "arch":
+		if app.PackageName == "" || !safePackageName(app.PackageName) {
+			return nil, fmt.Errorf("invalid Arch package name %q", app.PackageName)
+		}
+		if _, err := exec.LookPath("yay"); err != nil {
+			return nil, fmt.Errorf("Arch 安装需要 yay：%w", err)
+		}
+		// yay refuses to run as root, so do not route this through sudo.
+		return exec.Command("yay", "-S", "--needed", app.PackageName), nil
+	}
+
 	if packagePath == "" {
 		return nil, fmt.Errorf("package path is required")
 	}
 	format := strings.ToLower(filepath.Ext(packagePath))
-	lowerPath := strings.ToLower(packagePath)
 	switch host.Family {
 	case "deb":
 		if format != ".deb" {
 			return nil, fmt.Errorf("Debian family cannot install %s automatically", format)
 		}
 		return privilegedCommand("apt-get", "install", "-y", packagePath), nil
-	case "arch":
-		if !strings.HasSuffix(lowerPath, ".pkg.tar.zst") && !strings.HasSuffix(lowerPath, ".pkg.tar.xz") && !strings.HasSuffix(lowerPath, ".pkg.tar") {
-			return nil, fmt.Errorf("Arch family cannot install %s automatically", format)
-		}
-		return privilegedCommand("pacman", "-U", "--noconfirm", packagePath), nil
 	case "rpm":
 		if format != ".rpm" {
 			return nil, fmt.Errorf("RPM family cannot install %s automatically", format)

@@ -234,6 +234,8 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.pendingInstall = false
 		if message.err != nil {
 			m.status = "安装失败：" + message.err.Error()
+		} else if m.pendingPackage == "" {
+			m.status = "安装完成"
 		} else {
 			m.status = "安装完成；安装包保留在 " + m.pendingPackage
 		}
@@ -429,6 +431,15 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 	case "d":
 		if m.downloading {
 			m.status = "下载任务正在运行"
+			return m, nil
+		}
+		if m.host.Family == "arch" {
+			if m.selectedAppValue().PackageName == "" {
+				m.status = "当前应用没有可用于 yay 的包名"
+				return m, nil
+			}
+			m.pendingInstall = true
+			m.status = "Arch 将通过 yay 安装：I 或 Enter 确认；Esc 取消"
 			return m, nil
 		}
 		if m.selectedAppValue().MetalinkURL == "" {
