@@ -1,11 +1,11 @@
 Name:           spark-store-tui
 Version:        0.8.3
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Native terminal UI for Spark Store software management
 
 License:        GPL-3.0-only
 URL:            https://github.com/Xynrin/spark-store-tui
-Source0:        https://github.com/Xynrin/%{name}/releases/download/v%{version}/%{name}-source-%{version}-r2.tar.gz
+Source0:        https://github.com/Xynrin/%{name}/releases/download/v%{version}/%{name}-source-%{version}-r3.tar.gz
 
 BuildRequires:  go >= 1.25
 Requires:       ca-certificates
@@ -62,6 +62,9 @@ install -Dm0644 COPYING %{buildroot}%{_licensedir}/%{name}/COPYING
 %{_bindir}/spark-store-tui
 
 %changelog
+* Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.3-3
+- Resolve Amber package names from the published Debian asset filename
+
 * Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.3-2
 - Install Spark catalog applications through Amber APM on RPM systems
 

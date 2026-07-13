@@ -223,7 +223,7 @@ install_source() {
   source_ref="refs/tags/v$RELEASE_VERSION"
   # v0.8.3 predates the RPM/APM packaging revision. Pin its source fallback
   # to the reviewed r2 snapshot instead of rebuilding the old tag.
-  [ "$RELEASE_VERSION" = '0.8.3' ] && source_ref='0fb4dd9774518c3f18f41a1a165332d304cd24ba'
+  [ "$RELEASE_VERSION" = '0.8.3' ] && source_ref='9e565152b9f15fea1fdd965eebe6347d1266cf58'
   git init -q "$TEMP_DIR/source"
   git -C "$TEMP_DIR/source" remote add origin "$repo_url"
   git -C "$TEMP_DIR/source" fetch --depth 1 origin "$source_ref"
@@ -261,7 +261,7 @@ case "$FAMILY" in
     ;;
   rpm|suse)
     rpm_release=1
-    [ "$RELEASE_VERSION" = '0.8.3' ] && rpm_release=2
+    [ "$RELEASE_VERSION" = '0.8.3' ] && rpm_release=3
     asset="spark-store-tui-${RELEASE_VERSION}-${rpm_release}.${RPM_ARCH}.rpm"
     checksum=""
     [ "$asset" = 'spark-store-tui-0.8.0-1.x86_64.rpm' ] && checksum='e7e230456ddb0581c0dc3b45d1a620aa3cfe634344ccaddfa285023a05a545be'
