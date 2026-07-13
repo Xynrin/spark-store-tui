@@ -74,7 +74,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.3-r3.tar.gz` |
 
-`v0.8.3` 同时提供 `amd64` / `x86_64`、`arm64` / `aarch64` 与 `loong64` / `loongarch64` 的 Deb、RPM。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为下载源。请只下载与本机架构匹配的包。
+`v0.8.3` 同时提供 `amd64` / `x86_64`、`arm64` / `aarch64` 与 `loong64` / `loongarch64` 的 Deb、RPM。旧 GitHub Pages APT/RPM 仓库已冻结在 `0.7.2`，仅为避免已有软件源报错而保留，不再用于安装或更新；Gitee 当前没有 APT/RPM Pages 仓库。请使用本页的一键安装命令或 `v0.8.3` Release，并只下载与本机架构匹配的包。
 
 ### 麒麟 / 统信 / 信创架构
 
