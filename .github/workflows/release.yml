@@ -1,0 +1,46 @@
+name: Release Linux packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+      - name: Install RPM build tooling
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Verify Go module
+        run: make check
+      - name: Build Debian package and source archive
+        run: |
+          make build
+          make source
+          mkdir -p dist
+          mv spark-store-tui_*.deb spark-store-tui-source-*.tar.gz dist/
+      - name: Build RPM package
+        run: |
+          mkdir -p "$HOME/rpmbuild/SOURCES" "$HOME/rpmbuild/SPECS"
+          cp dist/spark-store-tui-source-*.tar.gz "$HOME/rpmbuild/SOURCES/"
+          cp packaging/rpm/spark-store-tui.spec "$HOME/rpmbuild/SPECS/"
+          rpmbuild -bb --nodeps "$HOME/rpmbuild/SPECS/spark-store-tui.spec"
+          find "$HOME/rpmbuild/RPMS" -name '*.rpm' -exec cp {} dist/ \;
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --title "spark-store-tui $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+          fi

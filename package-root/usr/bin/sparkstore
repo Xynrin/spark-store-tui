@@ -1,0 +1,11 @@
+#!/bin/sh
+# Primary Spark Store TUI command. The native binary is architecture-specific
+# and is kept outside /usr/bin so the three public command aliases stay small.
+for binary in /usr/lib/sparkstore/sparkstore /usr/libexec/sparkstore/sparkstore; do
+  if [ -x "$binary" ]; then
+    exec "$binary" "$@"
+  fi
+done
+
+echo "sparkstore: installed native binary is missing" >&2
+exit 127

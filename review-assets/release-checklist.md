@@ -1,19 +1,13 @@
-# Spark Store TUI 审核检查清单
+# Spark Store TUI 0.8.0 审核检查清单
 
 - 包名：`spark-store-tui`
-- 版本：`0.7.2-1`
-- 架构：`all`
-- 作者：`Xynrin`
-- 维护者：`Xynrin <xynrin@163.com>`
+- 版本：`0.8.0-1`
+- Deb 架构：构建机架构（`amd64` 或 `arm64`）
 - 许可证：`GPL-3.0-only`
 - Homepage：`https://github.com/Xynrin/spark-store-tui`
-- 根目录包含 `COPYING`
-- Debian copyright 声明 `GPL-3.0-only`
-- README 声明 `License: GPL-3.0-only`
-- 非 Debian-like 系统默认使用 APM Store
-- Debian-like 系统默认使用 Spark Store
-- 下载默认进入 `/tmp/spark-store-tui.xxxxxx`
-- `KEEP_DOWNLOADS=1` 可保留下载目录
-- aria2c 使用 `--summary-interval=0`
-- 构建产物：`spark-store-tui_0.7.2-1_all.deb`
-- 源码包：`spark-store-tui-deb-source-0.7.2.tar.gz`
+- 应用目录：仅 Spark Store 公开 metadata
+- 下载：Metalink 镜像回退、断点续传、重启恢复和无数据超时
+- 主命令：`sparkstore`（兼容 `SparkStore`、`SPARKSTORE`、`spark-store-tui`）
+- Deb 产物：`spark-store-tui_0.8.0-1_<arch>.deb`
+- 源码包：`spark-store-tui-source-0.8.0.tar.gz`
+- RPM 产物：`spark-store-tui-0.8.0-1.<arch>.rpm`
