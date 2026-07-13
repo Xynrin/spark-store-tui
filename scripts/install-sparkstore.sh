@@ -9,6 +9,7 @@ OWNER="Xynrin"
 REPOSITORY="spark-store-tui"
 GITEE_OWNER="spark-store-project"
 TEMP_DIR=""
+LINUX_COMMAND_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 cleanup() { [ -z "$TEMP_DIR" ] || rm -rf "$TEMP_DIR"; }
 trap cleanup EXIT
@@ -93,20 +94,26 @@ ensure_image_preview() {
 # Amber APM is the compatibility layer used by Spark Store applications on
 # Arch and Fedora. The commands follow Amber PM's published installation path.
 ensure_amber_runtime() {
-  command -v apm >/dev/null 2>&1 && return 0
-  echo '正在补齐 Amber APM 运行环境…'
-  case "$FAMILY" in
-    arch)
-      if ! yay -S --needed --noconfirm amber-package-manager; then
-        echo '提示：Amber APM 安装失败；TUI 已安装，但 Arch 应用安装功能暂不可用。' >&2
-      fi
-      ;;
-    rpm)
-      if ! "${SUDO[@]}" dnf -y copr enable xmp360/spark-store || ! "${SUDO[@]}" dnf install -y spark-store; then
-        echo '提示：Amber APM 安装失败；TUI 已安装，但 Fedora 应用安装功能暂不可用。' >&2
-      fi
-      ;;
-  esac
+  if ! command -v apm >/dev/null 2>&1; then
+    echo '正在补齐 Amber APM 运行环境…'
+    case "$FAMILY" in
+      arch)
+        if ! env PATH="$LINUX_COMMAND_PATH" yay -S --needed --noconfirm amber-package-manager; then
+          echo '提示：Amber APM 安装失败；TUI 已安装，但 Arch 应用安装功能暂不可用。' >&2
+        fi
+        ;;
+      rpm)
+        if ! "${SUDO[@]}" dnf -y copr enable xmp360/spark-store || ! "${SUDO[@]}" dnf install -y spark-store; then
+          echo '提示：Amber APM 安装失败；TUI 已安装，但 Fedora 应用安装功能暂不可用。' >&2
+        fi
+        ;;
+    esac
+  fi
+  command -v apm >/dev/null 2>&1 || return 0
+  echo '正在刷新 Amber APM 应用目录…'
+  if ! "${SUDO[@]}" env PATH="$LINUX_COMMAND_PATH" apm update; then
+    echo '提示：Amber APM 目录刷新失败；请联网后执行 sudo apm update。' >&2
+  fi
 }
 
 if [ "$FAMILY" = arch ]; then
@@ -130,7 +137,7 @@ if [ "$FAMILY" = arch ]; then
       echo "AUR API 尚未刷新（当前 ${aur_version:-未知}），已从 AUR Git 确认 $RELEASE_VERSION。"
       ;;
   esac
-  yay -S --needed --noconfirm spark-store-tui
+  env PATH="$LINUX_COMMAND_PATH" yay -S --needed --noconfirm spark-store-tui
   ensure_image_preview
   ensure_amber_runtime
   exit 0
