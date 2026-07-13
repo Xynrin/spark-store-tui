@@ -155,6 +155,8 @@ case "$FAMILY" in
     asset="spark-store-tui_${RELEASE_VERSION}-1_${DEB_ARCH}.deb"
     checksum=""
     [ "$asset" = 'spark-store-tui_0.8.0-1_amd64.deb' ] && checksum='f081a2ed817410c72f810ca5cc97cd2cbbb4b6bec19cf8c15152d2264515f738'
+    [ "$asset" = 'spark-store-tui_0.8.1-1_amd64.deb' ] && checksum='447f3f2ad66d00b07a42e8c057553c9a1d12c1fab250fcc0c1c0f3df07b7ddad'
+    [ "$asset" = 'spark-store-tui_0.8.1-1_arm64.deb' ] && checksum='094efc497d867e8d1e54de71bd1fc475001ca5dec90fa6332befff03317fafae'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$asset"
@@ -166,6 +168,8 @@ case "$FAMILY" in
     asset="spark-store-tui-${RELEASE_VERSION}-1.${RPM_ARCH}.rpm"
     checksum=""
     [ "$asset" = 'spark-store-tui-0.8.0-1.x86_64.rpm' ] && checksum='e7e230456ddb0581c0dc3b45d1a620aa3cfe634344ccaddfa285023a05a545be'
+    [ "$asset" = 'spark-store-tui-0.8.1-1.x86_64.rpm' ] && checksum='837fdd1085d2a943e8f8f895ba56782939f49bb9d1ad307f1a4787aca5c3b30f'
+    [ "$asset" = 'spark-store-tui-0.8.1-1.aarch64.rpm' ] && checksum='cd87e55e3883604aaf8edd28b77700be90ad1424b8462857e956d9afb293e47e'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       if [ "$FAMILY" = rpm ]; then
