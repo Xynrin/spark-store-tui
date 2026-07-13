@@ -3,7 +3,7 @@
 # Gitee release mirror and never silently installs an older AUR package.
 set -euo pipefail
 
-VERSION="${SPARKSTORE_VERSION:-0.8.0}"
+RELEASE_VERSION="${SPARKSTORE_VERSION:-0.8.0}"
 MIRROR="${SPARKSTORE_MIRROR:-}"
 OWNER="Xynrin"
 REPOSITORY="spark-store-tui"
@@ -72,8 +72,8 @@ esac
 if [ "$FAMILY" = arch ]; then
   command -v yay >/dev/null || { echo 'Arch 系统请先安装 yay。' >&2; exit 1; }
   aur_version=$(yay -Si spark-store-tui 2>/dev/null | awk -F: '/^Version[[:space:]]*:/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
-  case "$aur_version" in "$VERSION"-*|"$VERSION") ;; *)
-    echo "AUR 当前版本为 ${aur_version:-未找到}，尚未发布 $VERSION；为避免安装旧版已停止。" >&2
+  case "$aur_version" in "$RELEASE_VERSION"-*|"$RELEASE_VERSION") ;; *)
+    echo "AUR 当前版本为 ${aur_version:-未找到}，尚未发布 $RELEASE_VERSION；为避免安装旧版已停止。" >&2
     exit 1
   esac
   yay -S --needed spark-store-tui
@@ -100,15 +100,25 @@ verify() {
   [ "$actual" = "$expected" ] || { echo "SHA-256 校验失败：$file" >&2; exit 1; }
 }
 
-release_urls() {
+release_url() {
   asset="$1"
   if [ "$MIRROR" = github ]; then
-    printf '%s\n' "https://github.com/$OWNER/$REPOSITORY/releases/download/v$VERSION/$asset"
+    printf '%s\n' "https://github.com/$OWNER/$REPOSITORY/releases/download/v$RELEASE_VERSION/$asset"
   else
-    printf '%s\n' \
-      "https://gitee.com/$GITEE_OWNER/$REPOSITORY/releases/download/v$VERSION/$asset" \
-      "https://gitee.com/api/v5/repos/$GITEE_OWNER/$REPOSITORY/releases/v$VERSION/attach_files/$asset/download"
+    # Gitee exposes a public, redirecting release URL.  Its attachment API
+    # requires a release ID and may return 401 to anonymous installers.
+    printf '%s\n' "https://gitee.com/$GITEE_OWNER/$REPOSITORY/releases/download/v$RELEASE_VERSION/$asset"
   fi
+}
+
+confirm_source_build() {
+  echo "未能从 $MIRROR 下载 $1。"
+  printf '是否改为从源码构建？这会安装 Go 和构建依赖 [y/N]： '
+  read -r answer
+  case "${answer,,}" in
+    y|yes) install_source ;;
+    *) echo '已取消；未修改系统。' >&2; exit 1 ;;
+  esac
 }
 
 install_source() {
@@ -126,7 +136,7 @@ install_source() {
   fi
   repo_url="https://github.com/$OWNER/$REPOSITORY.git"
   [ "$MIRROR" = gitee ] && repo_url="https://gitee.com/$GITEE_OWNER/$REPOSITORY.git"
-  git clone --depth 1 --branch "v$VERSION" "$repo_url" "$TEMP_DIR/source"
+  git clone --depth 1 --branch "v$RELEASE_VERSION" "$repo_url" "$TEMP_DIR/source"
   (
     cd "$TEMP_DIR/source"
     go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
@@ -137,21 +147,21 @@ install_source() {
 
 case "$FAMILY" in
   deb)
-    asset="spark-store-tui_${VERSION}-1_${DEB_ARCH}.deb"
+    asset="spark-store-tui_${RELEASE_VERSION}-1_${DEB_ARCH}.deb"
     checksum=""
     [ "$asset" = 'spark-store-tui_0.8.0-1_amd64.deb' ] && checksum='f081a2ed817410c72f810ca5cc97cd2cbbb4b6bec19cf8c15152d2264515f738'
-    if urls=$(release_urls "$asset") && download "$TEMP_DIR/$asset" $urls; then
+    if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$asset"
     else
-      install_source
+      confirm_source_build "$asset"
     fi
     ;;
   rpm|suse)
-    asset="spark-store-tui-${VERSION}-1.${RPM_ARCH}.rpm"
+    asset="spark-store-tui-${RELEASE_VERSION}-1.${RPM_ARCH}.rpm"
     checksum=""
     [ "$asset" = 'spark-store-tui-0.8.0-1.x86_64.rpm' ] && checksum='e7e230456ddb0581c0dc3b45d1a620aa3cfe634344ccaddfa285023a05a545be'
-    if urls=$(release_urls "$asset") && download "$TEMP_DIR/$asset" $urls; then
+    if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       if [ "$FAMILY" = rpm ]; then
         "${SUDO[@]}" dnf install -y "$TEMP_DIR/$asset"
@@ -159,7 +169,7 @@ case "$FAMILY" in
         "${SUDO[@]}" zypper --non-interactive install "$TEMP_DIR/$asset"
       fi
     else
-      install_source
+      confirm_source_build "$asset"
     fi
     ;;
 esac
