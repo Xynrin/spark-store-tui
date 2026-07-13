@@ -12,6 +12,11 @@ Requires:       ca-certificates
 Recommends:     chafa
 Recommends:     sudo
 
+# Go binaries are already self-contained.  The host strip/objdump tools cannot
+# inspect cross-compiled aarch64 binaries on the x86_64 release runner.
+%global __brp_strip %{nil}
+%global __brp_strip_comment_note %{nil}
+
 %ifarch x86_64
 %global sparkstore_goarch amd64
 %endif
