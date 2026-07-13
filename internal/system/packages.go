@@ -14,7 +14,7 @@ import (
 // UninstallCommand returns a native package-manager command for installed
 // packages. The package name is validated before it can reach a shell.
 func UninstallCommand(host Host, app domain.App) (string, error) {
-	packageName := app.PackageName
+	packageName := packageNameForHost(host, app)
 	if packageName == "" {
 		return "", fmt.Errorf("%s does not expose a package name", app.Name)
 	}
@@ -36,13 +36,14 @@ func UninstallCommand(host Host, app domain.App) (string, error) {
 func InstallProcess(host Host, app domain.App, packagePath string) (*exec.Cmd, error) {
 	switch host.Family {
 	case "arch", "rpm", "suse":
-		if app.PackageName == "" || !safePackageName(app.PackageName) {
-			return nil, fmt.Errorf("invalid APM package name %q", app.PackageName)
+		packageName := amberPackageName(app)
+		if packageName == "" || !safePackageName(packageName) {
+			return nil, fmt.Errorf("invalid APM package name %q", packageName)
 		}
 		if _, err := exec.LookPath("apm"); err != nil {
 			return nil, fmt.Errorf("此发行版安装星火应用需要 Amber APM（apm）：%w", err)
 		}
-		return privilegedCommand("apm", "install", app.PackageName, "-y"), nil
+		return privilegedCommand("apm", "install", packageName, "-y"), nil
 	}
 
 	if packagePath == "" {
@@ -71,7 +72,7 @@ func InstallProcess(host Host, app domain.App, packagePath string) (*exec.Cmd, e
 }
 
 func UninstallProcess(host Host, app domain.App) (*exec.Cmd, error) {
-	packageName := app.PackageName
+	packageName := packageNameForHost(host, app)
 	if packageName == "" || !safePackageName(packageName) {
 		return nil, fmt.Errorf("invalid package name %q", packageName)
 	}
@@ -86,6 +87,26 @@ func UninstallProcess(host Host, app domain.App) (*exec.Cmd, error) {
 	default:
 		return nil, fmt.Errorf("uninstall is not configured for %s", host.Family)
 	}
+}
+
+func packageNameForHost(host Host, app domain.App) string {
+	if host.Family == "arch" || host.Family == "rpm" || host.Family == "suse" {
+		return amberPackageName(app)
+	}
+	return app.PackageName
+}
+
+// Spark's directory name is not always the Debian package name used by APM.
+// For example, the vscode directory publishes code_<version>_<arch>.deb and
+// Amber exposes it as "code". Debian filenames provide the authoritative name.
+func amberPackageName(app domain.App) string {
+	filename := filepath.Base(app.Filename)
+	if strings.EqualFold(filepath.Ext(filename), ".deb") {
+		if candidate, _, found := strings.Cut(filename, "_"); found && safePackageName(candidate) {
+			return candidate
+		}
+	}
+	return app.PackageName
 }
 
 // privilegedCommand avoids invoking sudo from a root shell. Besides being

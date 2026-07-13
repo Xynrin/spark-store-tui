@@ -63,6 +63,33 @@ func TestInstallProcessUsesAPMForArch(t *testing.T) {
 	}
 }
 
+func TestInstallProcessUsesDebianPackageNameForAPM(t *testing.T) {
+	bin := t.TempDir()
+	apm := bin + "/apm"
+	if err := os.WriteFile(apm, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
+	app := domain.App{
+		PackageName: "vscode",
+		Filename:    "code_1.128.0-1783465401_amd64.deb",
+	}
+	process, err := InstallProcess(Host{Family: "rpm"}, app, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"apm", "install", "code", "-y"}
+	if os.Geteuid() != 0 {
+		want = append([]string{"sudo"}, want...)
+	}
+	if got := process.Args; !reflect.DeepEqual(got, want) {
+		t.Fatalf("arguments = %q, want %q", got, want)
+	}
+	if command, err := UninstallCommand(Host{Family: "rpm"}, app); err != nil || command != "sudo apm remove -y code" {
+		t.Fatalf("uninstall command = %q, err = %v", command, err)
+	}
+}
+
 func contains(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {

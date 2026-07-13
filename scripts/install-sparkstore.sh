@@ -97,7 +97,7 @@ ensure_amber_runtime() {
   echo '正在补齐 Amber APM 运行环境…'
   case "$FAMILY" in
     arch)
-      if ! yay -S --needed amber-package-manager; then
+      if ! yay -S --needed --noconfirm amber-package-manager; then
         echo '提示：Amber APM 安装失败；TUI 已安装，但 Arch 应用安装功能暂不可用。' >&2
       fi
       ;;
@@ -130,7 +130,7 @@ if [ "$FAMILY" = arch ]; then
       echo "AUR API 尚未刷新（当前 ${aur_version:-未知}），已从 AUR Git 确认 $RELEASE_VERSION。"
       ;;
   esac
-  yay -S --needed spark-store-tui
+  yay -S --needed --noconfirm spark-store-tui
   ensure_image_preview
   ensure_amber_runtime
   exit 0
