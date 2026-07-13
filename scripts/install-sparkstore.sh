@@ -60,6 +60,36 @@ case "$(uname -m)" in
   *) echo "不支持的 CPU 架构：$(uname -m)" >&2; exit 1 ;;
 esac
 
+# chafa enables the in-terminal logo and screenshot previews. It is optional
+# for the binary itself, so a missing package repository must not prevent the
+# main application from being installed.
+ensure_image_preview() {
+  command -v chafa >/dev/null 2>&1 && return 0
+  echo '正在补齐终端图片预览依赖 chafa…'
+  case "$FAMILY" in
+    arch)
+      if ! yay -S --needed chafa; then
+        echo '提示：chafa 安装失败，星火商店仍可使用；可稍后手动安装以启用图片预览。' >&2
+      fi
+      ;;
+    deb)
+      if ! "${SUDO[@]}" apt-get update || ! "${SUDO[@]}" apt-get install -y chafa; then
+        echo '提示：chafa 安装失败，星火商店仍可使用；可稍后手动安装以启用图片预览。' >&2
+      fi
+      ;;
+    rpm)
+      if ! "${SUDO[@]}" dnf install -y chafa; then
+        echo '提示：chafa 安装失败，星火商店仍可使用；可稍后手动安装以启用图片预览。' >&2
+      fi
+      ;;
+    suse)
+      if ! "${SUDO[@]}" zypper --non-interactive install chafa; then
+        echo '提示：chafa 安装失败，星火商店仍可使用；可稍后手动安装以启用图片预览。' >&2
+      fi
+      ;;
+  esac
+}
+
 if [ "$FAMILY" = arch ]; then
   command -v yay >/dev/null || { echo 'Arch 系统请先安装 yay。' >&2; exit 1; }
   aur_version=$(yay -Si spark-store-tui 2>/dev/null | awk -F: '/^Version[[:space:]]*:/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
@@ -68,6 +98,7 @@ if [ "$FAMILY" = arch ]; then
     exit 1
   esac
   yay -S --needed spark-store-tui
+  ensure_image_preview
   exit 0
 fi
 
@@ -147,6 +178,7 @@ install_source() {
     go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
     "${SUDO[@]}" install -Dm755 sparkstore /usr/local/bin/sparkstore
   )
+  ensure_image_preview
   echo '安装完成：/usr/local/bin/sparkstore'
 }
 
@@ -166,6 +198,7 @@ case "$FAMILY" in
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$asset"
+      ensure_image_preview
     else
       confirm_source_build "$asset"
     fi
@@ -189,6 +222,7 @@ case "$FAMILY" in
       else
         "${SUDO[@]}" zypper --non-interactive install "$TEMP_DIR/$asset"
       fi
+      ensure_image_preview
     else
       confirm_source_build "$asset"
     fi
