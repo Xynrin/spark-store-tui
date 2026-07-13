@@ -93,18 +93,17 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 
 `v0.8.3` 同时提供 `amd64` / `x86_64`、`arm64` / `aarch64` 与 `loong64` / `loongarch64` 的 Deb、RPM。仓库中的 [`apt/`](apt/README.md) 与 [`rpm/`](rpm/README.md) 只是冻结在 `0.7.2` 的历史归档，为避免已有软件源立即失效而保留，不代表当前版本，也不再用于新安装或更新；Gitee 当前没有 APT/RPM Pages 仓库。请使用本页的一键安装命令或 `v0.8.3` Release，并只下载与本机架构匹配的包。
 
-### 麒麟 / 统信 / 信创架构
+### CPU 架构选择
 
-发行版名称不是决定因素，先执行 `uname -m`：
+安装前先执行 `uname -m`，并按输出选择软件包：
 
-| `uname -m` | 常见设备 | 当前使用方式 |
+| `uname -m` | Deb 架构 | RPM 架构 |
 |---|---|---|
-| `x86_64` | Intel / AMD 麒麟、统信 | 使用 `amd64` Deb 或 `x86_64` RPM |
-| `aarch64` | 鲲鹏、飞腾、兆芯 ARM 等 | 使用 `arm64` Deb 或 `aarch64` RPM |
-| `loongarch64` | 龙芯新平台 | 使用 `loong64` Deb 或 `loongarch64` RPM |
-| 其他值 | 需单独确认 | 不要安装 amd64 包；优先源码构建并反馈 `uname -m` 输出 |
+| `x86_64` | `amd64` | `x86_64` |
+| `aarch64` | `arm64` | `aarch64` |
+| `loongarch64` | `loong64` | `loongarch64` |
 
-星火 TUI 是纯 Go 程序，预编译包只影响安装便利性，不改变应用功能。麒麟 V10/统信既可能是 `x86_64`，也可能是 `aarch64` 或 `loongarch64`，不能仅凭系统名称下载包。
+不要在架构不匹配时安装 amd64 包；其他架构请优先从源码构建。
 
 ### Debian / Ubuntu
 
