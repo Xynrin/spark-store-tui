@@ -119,25 +119,37 @@ ensure_amber_runtime() {
 if [ "$FAMILY" = arch ]; then
   command -v yay >/dev/null || { echo 'Arch 系统请先安装 yay。' >&2; exit 1; }
   aur_version=$(yay -Si spark-store-tui 2>/dev/null | awk -F: '/^Version[[:space:]]*:/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
-  case "$aur_version" in
-    "$RELEASE_VERSION"-*|"$RELEASE_VERSION") ;;
-    *)
-      # The AUR RPC index can lag behind a successful Git push. Check the
-      # published PKGBUILD without executing it before rejecting the install.
-      aur_probe=$(mktemp -d)
-      aur_pkgver=""
-      if git clone -q --depth 1 https://aur.archlinux.org/spark-store-tui.git "$aur_probe/repository"; then
-        aur_pkgver=$(awk -F= '/^pkgver=/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$aur_probe/repository/PKGBUILD")
-      fi
-      rm -rf "$aur_probe"
-      if [ "$aur_pkgver" != "$RELEASE_VERSION" ]; then
-        echo "AUR 当前版本为 ${aur_version:-未找到}，尚未发布 $RELEASE_VERSION；为避免安装旧版已停止。" >&2
-        exit 1
-      fi
-      echo "AUR API 尚未刷新（当前 ${aur_version:-未知}），已从 AUR Git 确认 $RELEASE_VERSION。"
-      ;;
-  esac
-  env PATH="$LINUX_COMMAND_PATH" yay -S --needed --noconfirm spark-store-tui
+  aur_expected_pkgrel=1
+  [ "$RELEASE_VERSION" != '0.8.3' ] || aur_expected_pkgrel=4
+  aur_pkgver="${aur_version%-*}"
+  aur_pkgrel="${aur_version##*-}"
+  aur_force_refresh=false
+  if [ "$aur_pkgver" != "$RELEASE_VERSION" ] || ! [[ "$aur_pkgrel" =~ ^[0-9]+$ ]] || (( aur_pkgrel < aur_expected_pkgrel )); then
+    # The AUR RPC index can lag behind a successful Git push. Check the
+    # published PKGBUILD without executing it before rejecting the install.
+    TEMP_DIR=$(mktemp -d)
+    aur_git_pkgver=""
+    aur_git_pkgrel=""
+    if git clone -q --depth 1 https://aur.archlinux.org/spark-store-tui.git "$TEMP_DIR/repository"; then
+      aur_git_pkgver=$(awk -F= '/^pkgver=/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$TEMP_DIR/repository/PKGBUILD")
+      aur_git_pkgrel=$(awk -F= '/^pkgrel=/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$TEMP_DIR/repository/PKGBUILD")
+    fi
+    if [ "$aur_git_pkgver" != "$RELEASE_VERSION" ] || ! [[ "$aur_git_pkgrel" =~ ^[0-9]+$ ]] || (( aur_git_pkgrel < aur_expected_pkgrel )); then
+      echo "AUR 当前版本为 ${aur_version:-未找到}，尚未发布 $RELEASE_VERSION-$aur_expected_pkgrel；为避免安装旧版已停止。" >&2
+      exit 1
+    fi
+    aur_force_refresh=true
+    echo "AUR API 尚未刷新（当前 ${aur_version:-未知}），已从 AUR Git 确认 $aur_git_pkgver-$aur_git_pkgrel。"
+  fi
+  if [ "$aur_force_refresh" = true ]; then
+    if [ "$(id -u)" -eq 0 ]; then
+      echo 'AUR API 尚未刷新时请使用普通用户运行安装器；yay 不允许 root 直接构建 AUR Git 包。' >&2
+      exit 1
+    fi
+    env PATH="$LINUX_COMMAND_PATH" yay -Bi --noconfirm "$TEMP_DIR/repository"
+  else
+    env PATH="$LINUX_COMMAND_PATH" yay -S --needed --noconfirm spark-store-tui
+  fi
   ensure_image_preview
   ensure_amber_runtime
   exit 0
