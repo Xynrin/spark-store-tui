@@ -1,9 +1,11 @@
 *.deb
 *.tar.gz
 package-root/tmp/
+package-root/DEBIAN/md5sums
 .cache/
 build/
 dist/
 *.metalink
 *.torrent
 .apt-gpg/
+.codex-tools/

@@ -1,42 +1,47 @@
 Name:           spark-store-tui
-Version:        0.7.2
+Version:        0.8.0
 Release:        1%{?dist}
-Summary:        Terminal UI for browsing Spark Store and APM Store
+Summary:        Native terminal UI for Spark Store software management
 
 License:        GPL-3.0-only
 URL:            https://github.com/Xynrin/spark-store-tui
-Source0:        https://github.com/Xynrin/%{name}/releases/download/v%{version}/%{name}-deb-source-%{version}.tar.gz
+Source0:        https://github.com/Xynrin/%{name}/releases/download/v%{version}/%{name}-source-%{version}.tar.gz
 
-BuildArch:      noarch
-Requires:       bash
-Requires:       curl
-Requires:       jq
-Requires:       fzf
-Requires:       aria2
+BuildRequires:  go >= 1.25
 Requires:       ca-certificates
 Recommends:     chafa
 Recommends:     sudo
 
 %description
-Spark Store TUI is a Bash and fzf based terminal interface for browsing Spark
-Store and APM Store metadata, previewing application information, and
-downloading packages through Metalink and aria2c.
+Spark Store TUI is a native Go terminal interface for browsing official Spark
+Store metadata, downloading packages through official Metalink mirrors, and
+installing or uninstalling local packages. Interrupted downloads are recovered
+on the next start and can be resumed from the application.
 
 %prep
-%autosetup -n %{name}-deb-source-%{version}
+%autosetup -n %{name}-source-%{version}
 
 %build
+CGO_ENABLED=0 go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
 
 %install
-install -Dm0755 package-root/usr/bin/%{name} %{buildroot}%{_bindir}/%{name}
+install -Dm0755 sparkstore %{buildroot}%{_libexecdir}/sparkstore/sparkstore
+install -Dm0755 package-root/usr/bin/sparkstore %{buildroot}%{_bindir}/sparkstore
+ln -s sparkstore %{buildroot}%{_bindir}/SparkStore
+ln -s sparkstore %{buildroot}%{_bindir}/SPARKSTORE
+ln -s sparkstore %{buildroot}%{_bindir}/spark-store-tui
 install -Dm0644 README.md %{buildroot}%{_docdir}/%{name}/README.md
 install -Dm0644 COPYING %{buildroot}%{_licensedir}/%{name}/COPYING
 
 %files
 %license %{_licensedir}/%{name}/COPYING
 %doc %{_docdir}/%{name}/README.md
-%{_bindir}/%{name}
+%{_libexecdir}/sparkstore/sparkstore
+%{_bindir}/sparkstore
+%{_bindir}/SparkStore
+%{_bindir}/SPARKSTORE
+%{_bindir}/spark-store-tui
 
 %changelog
-* Thu Apr 30 2026 Xynrin <xynrin@163.com> - 0.7.2-1
-- Initial RPM package
+* Mon Jul 13 2026 Xynrin <xynrin@163.com> - 0.8.0-1
+- Native Go release with resumable download recovery

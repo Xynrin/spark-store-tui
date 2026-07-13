@@ -1,240 +1,103 @@
-<p align="center">
-  <img src="icon.png" width="128" alt="Spark Store TUI icon">
-</p>
-
 # Spark Store TUI / 星火终端助手
 
-![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg)
-![AUR version](https://img.shields.io/aur/version/spark-store-tui)
-![GitHub release](https://img.shields.io/github/v/release/Xynrin/spark-store-tui)
-![Shell](https://img.shields.io/badge/Shell-Bash-4EAA25)
-![TUI](https://img.shields.io/badge/TUI-fzf-orange)
+`sparkstore` 是面向 Linux 的原生终端应用管理器。它只读取 Spark Store 的公开 metadata，通过官方 Metalink 选择下载镜像，并在明确确认后调用当前发行版的包管理器安装或卸载本地软件包。
 
-Spark Store TUI, 中文名「星火终端助手」，is a Bash + fzf terminal UI for browsing Spark Store and APM Store metadata. It can show category lists, app details, terminal image previews, and Metalink-based package downloads from the terminal.
+当前版本：`0.8.0`。
 
-This is a third-party terminal tool, not the official Spark Store client.
+## 功能
 
-| Item | Value |
-|---|---|
-| Chinese name | 星火终端助手 |
-| English name | Spark Store TUI |
-| Package name | `spark-store-tui` |
-| Current package version | `0.7.2-1` |
-| Command | `spark-store-tui` |
-| License | GPL-3.0-only |
-| Release channels | deb / rpm / AUR / source |
-| GitHub | https://github.com/Xynrin/spark-store-tui |
-| Gitee mirror | https://gitee.com/spark-store-project/spark-store-tui |
+- 自动识别 Debian/Ubuntu、Arch、Fedora/RHEL 与 openSUSE，以及 `x86_64` / `aarch64` 架构。
+- 分类浏览、搜索、图标终端预览（可选 `chafa`）和长简介展开。
+- Metalink 镜像回退、断点续传、下载任务持久化与无数据超时检测。
+- 应用重启后自动识别完成包和中断任务；中断任务按 `D` 即可继续。
+- `.deb`、RPM 和 Arch 本地包的确认安装；原生包管理器卸载；可选删除本地安装包。
 
-## Features
+应用来源只保留 **Spark Store**，不再显示 GitHub Releases、Gitee Releases 或 APM Store。
 
-- Bash + fzf terminal UI for store browsing.
-- Spark Store and APM Store metadata browsing.
-- Category, application list and application detail views.
-- Image preview through chafa or viu when available.
-- Metalink + aria2c package downloads.
-- Debian-like systems default to Spark Store.
-- Non-Debian systems default to APM Store only.
-- amd64 and arm64 metadata paths are selected from `uname -m`.
-- Downloads go to `/tmp/spark-store-tui.xxxxxx` by default and are cleaned up on exit.
-- `KEEP_DOWNLOADS=1` keeps the download directory and prints its path.
+## 命令
 
-## Install
-
-### Debian / deepin / UOS / Ubuntu / Linux Mint
-
-Use the signed APT repository hosted by the Gitee organization mirror:
+标准命令为：
 
 ```bash
-sudo apt update
-sudo apt install -y ca-certificates curl
-sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/master/apt/spark-store-tui-archive-keyring.gpg | sudo tee /etc/apt/keyrings/spark-store-tui-archive-keyring.gpg >/dev/null
-printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/spark-store-tui-archive-keyring.gpg] https://gitee.com/spark-store-project/spark-store-tui/raw/master/apt stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
-sudo apt update
-sudo apt install spark-store-tui
+sparkstore
 ```
 
-Signing key fingerprint:
+安装包另外提供 `SparkStore`、`SPARKSTORE` 和旧命令 `spark-store-tui`。Linux 命令名区分大小写，未列出的大小写组合不能由 shell 自动识别。
 
-```text
-1AE6D4E7C4DB8C016F72F8C6A4D276F9CF8E57A9
-```
+## WSL / 本地开发
 
-Install the `.deb` package directly:
+需要 Go 1.25 或更新版本。在 WSL 的 `/mnt/c` 目录中可直接执行：
 
 ```bash
-curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.7.2/spark-store-tui_0.7.2-1_all.deb
-sudo apt install ./spark-store-tui_0.7.2-1_all.deb
+go test ./...
+go vet ./...
+mkdir -p build
+go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
+./build/sparkstore
 ```
 
-Domestic mirror:
+`-buildvcs=false` 避免 Git 对 Windows 挂载目录的所有权检查。图片预览是可选的：运行 `sparkstore --bootstrap-images` 可按发行版安装 `chafa`。
+
+## 快捷键
+
+进入应用页后：`/` 搜索、`[` / `]` 切换分类、`D` 下载/续传、`I` 安装、`U` 卸载、`E` 展开简介、`R` 刷新、`q` 退出。
+
+下载中断或进程被关闭后，下一次启动会将任务标记为“可继续”，而不会卡住 UI；选中对应应用后按 `D` 继续下载。
+
+## 发布物与后缀
+
+| 平台 | 发布物 | 后缀 / 架构 |
+|---|---|---|
+| Debian / Ubuntu | Debian 包 | `spark-store-tui_0.8.0-1_amd64.deb`、`..._arm64.deb` |
+| Fedora / RHEL / openSUSE | RPM | `spark-store-tui-0.8.0-1.<arch>.rpm` |
+| Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
+| 通用构建 | 源码包 | `spark-store-tui-source-0.8.0.tar.gz` |
+
+GitHub Release 是主发布渠道；Gitee 同步相同 tag、源码与二进制发布物。请只下载与本机架构匹配的包。
+
+### Debian / Ubuntu
 
 ```bash
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/raw/master/apt/pool/main/s/spark-store-tui/spark-store-tui_0.7.2-1_all.deb
-sudo apt install ./spark-store-tui_0.7.2-1_all.deb
+curl -LO https://github.com/Xynrin/spark-store-tui/releases/download/v0.8.0/spark-store-tui_0.8.0-1_amd64.deb
+sudo apt install ./spark-store-tui_0.8.0-1_amd64.deb
 ```
 
-### Arch / Manjaro / EndeavourOS
+arm64 设备将文件名中的 `amd64` 替换为 `arm64`。
 
-The package is available on AUR. `yay` searches Arch repositories and AUR, not ArchWiki.
+### RPM 系统
+
+下载对应发行版与架构的 `.rpm` 后执行：
+
+```bash
+sudo dnf install ./spark-store-tui-0.8.0-1.x86_64.rpm
+```
+
+openSUSE 可使用：
+
+```bash
+sudo zypper install ./spark-store-tui-0.8.0-1.x86_64.rpm
+```
+
+### Arch Linux / AUR
+
+发布完成后：
 
 ```bash
 yay -S spark-store-tui
 ```
 
-Package page: https://aur.archlinux.org/packages/spark-store-tui
+## 构建发布物
 
-### Fedora / RPM
-
-Use the self-hosted RPM repository:
+在对应 Linux 构建环境中：
 
 ```bash
-sudo tee /etc/yum.repos.d/spark-store-tui.repo >/dev/null <<'EOF'
-[spark-store-tui]
-name=Spark Store TUI
-baseurl=https://xynrin.github.io/spark-store-tui/rpm
-enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-EOF
-sudo dnf install spark-store-tui
+make check
+make build       # 本机架构 .deb
+make source      # 通用 source tarball
 ```
 
-Domestic Gitee mirror / 国内 Gitee 镜像：
+RPM 与 AUR 模板位于 [packaging](packaging/README.md)。
 
-```bash
-sudo tee /etc/yum.repos.d/spark-store-tui.repo >/dev/null <<'EOF'
-[spark-store-tui]
-name=Spark Store TUI
-baseurl=https://gitee.com/spark-store-project/spark-store-tui/raw/master/rpm
-enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-EOF
-sudo dnf install spark-store-tui
-```
+## 许可证
 
-Fedora Atomic, Silverblue and Kinoite users can use the same repository, then layer the package:
-
-```bash
-sudo rpm-ostree install spark-store-tui
-systemctl reboot
-```
-
-### Manual Script Install
-
-For openSUSE and other non-APT distributions, install dependencies with your package manager first:
-
-```bash
-# Arch / Manjaro without yay
-sudo pacman -S --needed bash curl jq fzf aria2 ca-certificates chafa
-
-# Fedora Workstation / Server
-sudo dnf install -y bash curl jq fzf aria2 ca-certificates chafa
-
-# Fedora Atomic / Silverblue / Kinoite
-sudo rpm-ostree install bash curl jq fzf aria2 ca-certificates chafa
-systemctl reboot
-
-# openSUSE
-sudo zypper install -y bash curl jq fzf aria2 ca-certificates chafa
-```
-
-Then install the script:
-
-```bash
-mkdir -p ~/.local/bin
-curl -fsSL https://raw.githubusercontent.com/Xynrin/spark-store-tui/main/package-root/usr/bin/spark-store-tui -o ~/.local/bin/spark-store-tui
-chmod +x ~/.local/bin/spark-store-tui
-export PATH="$HOME/.local/bin:$PATH"
-MODE=apm spark-store-tui
-```
-
-Domestic mirror:
-
-```bash
-mkdir -p ~/.local/bin
-curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/master/package-root/usr/bin/spark-store-tui -o ~/.local/bin/spark-store-tui
-chmod +x ~/.local/bin/spark-store-tui
-export PATH="$HOME/.local/bin:$PATH"
-MODE=apm spark-store-tui
-```
-
-On non-Debian systems, `MODE=auto` defaults to APM Store metadata. Use `MODE=apm` explicitly if you want to avoid Spark Store `.deb` package content.
-
-## Run
-
-```bash
-spark-store-tui
-```
-
-Download without installing and keep the download directory:
-
-```bash
-INSTALL_AFTER_DOWNLOAD=0 KEEP_DOWNLOADS=1 spark-store-tui
-```
-
-## Environment Variables
-
-| Variable | Description |
-|---|---|
-| `MODE` | `auto`, `spark`, `apm` or `choose`; default: `auto` |
-| `ARCH_PATH` | Override the detected store path, for example `amd64-store`, `arm64-store`, `amd64-apm` or `arm64-apm` |
-| `STRICT_SPEC` | Use documented Spark/APM metadata paths only when set to `1`; default: `1` |
-| `DIRECT_FALLBACK` | Try direct package URLs after Metalink download fails when set to `1` |
-| `INSTALL_AFTER_DOWNLOAD` | `auto`, `1` or `0`; use `0` to download without installing |
-| `KEEP_DOWNLOADS` | Keep the download directory and print its path on exit when set to `1` |
-| `DOWNLOAD_DIR` | Custom download directory; otherwise `/tmp/spark-store-tui.xxxxxx` is used |
-| `IMAGE_PREVIEW` | Enable terminal image previews when set to `1` |
-| `IMAGE_KIND` | `auto`, `icon` or `screen`; default: `auto` |
-| `IMAGE_WIDTH` | Image preview width used by chafa or viu |
-| `IMAGE_HEIGHT` | Image preview height used by chafa |
-| `ARIA2_READOUT` | Disable aria2c console readout when set to `0`; aria2c summaries are disabled by default |
-| `ALLOW_SPARK_ON_NON_DEB` | Allow Spark Store mode on non-Debian systems for testing when set to `1` |
-
-## Spark Store and APM Store
-
-Spark Store mode uses Spark metadata and downloads from paths such as:
-
-```text
-https://d.spark-app.store/amd64-store/<category>/<pkgname>/app.json
-```
-
-Downloaded packages are installed with `sudo ssinstall <local_file>` when installation is enabled and `ssinstall` is available.
-
-APM Store mode uses APM metadata paths such as:
-
-```text
-https://d.spark-app.store/amd64-apm/<category>/<pkgname>/app.json
-```
-
-Local package handling uses `sudo apm ssaudit <local_file>`, and the app also prints the online install hint:
-
-```bash
-sudo apm install -y <pkgname>
-```
-
-## Automatic Store Selection
-
-On Debian-like systems, including Deepin, UOS, Debian, Ubuntu, Kylin and Linux Mint, `MODE=auto` defaults to Spark Store.
-
-On non-Debian systems, including Arch, Fedora, openSUSE, Manjaro and EndeavourOS, `MODE=auto` defaults to APM Store and Spark Store content is hidden. If `MODE=spark` is requested on a non-Debian system, the program switches to APM unless `ALLOW_SPARK_ON_NON_DEB=1` is set. `MODE=choose` follows the same rule: non-Debian systems only offer APM unless Spark is explicitly allowed.
-
-## License
-
-spark-store-tui is distributed under GPL-3.0-only. See `COPYING` for the full license text.
-
-## Inspiration and Links
-
-- Inspiration: [SHORiN-KiWATA/shorin-contrib pac](https://github.com/SHORiN-KiWATA/shorin-contrib/blob/main/pacman/pac)
-- Friend link: [SHORiN-KiWATA](https://github.com/SHORiN-KiWATA)
-- Spark Store official GitHub repository: [spark-store-project/spark-store](https://github.com/spark-store-project/spark-store)
-- Spark Store official website: [spark-app.store](https://www.spark-app.store/)
-
-## Project Information
-
-- Author: Xynrin
-- Maintainer: Xynrin <xynrin@163.com>
-- GitHub: https://github.com/Xynrin/spark-store-tui
-- Gitee mirror: https://gitee.com/spark-store-project/spark-store-tui
+GPL-3.0-only，详见 [COPYING](COPYING)。
