@@ -72,7 +72,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | Debian / Ubuntu / UOS / 麒麟 | Debian 包 | `spark-store-tui_0.8.3-1_amd64.deb`、`..._arm64.deb`、`..._loong64.deb` |
 | Fedora / RHEL / openSUSE / 银河麒麟 | RPM | `spark-store-tui-0.8.3-2.<arch>.rpm`（含 `loongarch64`） |
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
-| 通用构建 | 源码包 | `spark-store-tui-source-0.8.3.tar.gz` |
+| 通用构建 | 源码包 | `spark-store-tui-source-0.8.3-r2.tar.gz` |
 
 `v0.8.3` 同时提供 `amd64` / `x86_64`、`arm64` / `aarch64` 与 `loong64` / `loongarch64` 的 Deb、RPM。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为下载源。请只下载与本机架构匹配的包。
 
