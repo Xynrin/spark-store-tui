@@ -49,3 +49,31 @@ func TestRecoveredDownloadsLeaveModelOperable(t *testing.T) {
 		t.Fatalf("recovery status = %q, downloading = %v", model.status, model.downloading)
 	}
 }
+
+func TestPackageStatusOffersSelectedAppUpdate(t *testing.T) {
+	model := Model{apps: []domain.App{{ID: "code", Name: "Code"}}}
+	updated, command := model.Update(packageStatusMsg{
+		appID: "code",
+		status: system.AppPackageStatus{
+			PackageName: "code", Installed: true, InstalledVersion: "1.0", CandidateVersion: "1.1", UpdateAvailable: true,
+		},
+	})
+	got := updated.(Model)
+	if command != nil || !got.pendingUpdate || !strings.Contains(got.status, "1.0 → 1.1") {
+		t.Fatalf("pending = %v, status = %q, command = %v", got.pendingUpdate, got.status, command)
+	}
+	if line := got.packageStatusLine(got.selectedAppValue()); !strings.Contains(line, "可更新至 1.1") {
+		t.Fatalf("status line = %q", line)
+	}
+}
+
+func TestPackageStatusReportsUninstalledApp(t *testing.T) {
+	model := Model{apps: []domain.App{{ID: "code", Name: "Code"}}, checkingPackage: true}
+	updated, _ := model.Update(packageStatusMsg{
+		appID: "code", status: system.AppPackageStatus{PackageName: "code", CandidateVersion: "1.1"},
+	})
+	got := updated.(Model)
+	if got.pendingUpdate || got.checkingPackage || !strings.Contains(got.status, "尚未安装") {
+		t.Fatalf("model = %+v", got)
+	}
+}

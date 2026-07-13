@@ -120,7 +120,7 @@ if [ "$FAMILY" = arch ]; then
   command -v yay >/dev/null || { echo 'Arch 系统请先安装 yay。' >&2; exit 1; }
   aur_version=$(yay -Si spark-store-tui 2>/dev/null | awk -F: '/^Version[[:space:]]*:/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
   aur_expected_pkgrel=1
-  [ "$RELEASE_VERSION" != '0.8.3' ] || aur_expected_pkgrel=4
+  [ "$RELEASE_VERSION" != '0.8.3' ] || aur_expected_pkgrel=5
   aur_pkgver="${aur_version%-*}"
   aur_pkgrel="${aur_version##*-}"
   aur_force_refresh=false
@@ -203,23 +203,35 @@ verify() {
   [ "$actual" = "$expected" ] || { echo "SHA-256 校验失败：$file" >&2; exit 1; }
 }
 
-# Debian application installation is delegated to Spark Store's official
-# ssinstall/aptss backend. aptss is not available from Ubuntu/Debian's default
+# Debian application download, installation and updates are delegated to Spark
+# Store's official aptss backend. aptss is not available from Ubuntu/Debian's default
 # repositories, so bootstrap the architecture-independent package from the
 # official Spark Store package server and verify its pinned SHA-256 first.
 ensure_debian_backend() {
   [ "$FAMILY" = deb ] || return 0
-  command -v aptss >/dev/null 2>&1 && return 0
-  echo '正在补齐星火 Debian 安装后端 aptss…'
-  aptss_asset='aptss_4.8.1-1_all.deb'
-  aptss_checksum='cd95de3488f7e39ce0300b1e3ba38b0c9416871e68fb91098011ace26f057751'
-  if ! download "$TEMP_DIR/$aptss_asset" "https://d.spark-app.store/store/depends/$aptss_asset"; then
-    echo '无法从星火官方软件包服务器下载 aptss。' >&2
-    exit 1
+  if ! command -v aptss >/dev/null 2>&1; then
+    echo '正在补齐星火 Debian 应用管理后端 aptss…'
+    aptss_asset='aptss_4.8.1-1_all.deb'
+    aptss_checksum='cd95de3488f7e39ce0300b1e3ba38b0c9416871e68fb91098011ace26f057751'
+    if ! download "$TEMP_DIR/$aptss_asset" "https://d.spark-app.store/store/depends/$aptss_asset"; then
+      echo '无法从星火官方软件包服务器下载 aptss。' >&2
+      exit 1
+    fi
+    verify "$TEMP_DIR/$aptss_asset" "$aptss_checksum"
+    "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$aptss_asset"
+    command -v aptss >/dev/null 2>&1 || { echo 'aptss 安装完成但命令不可用。' >&2; exit 1; }
   fi
-  verify "$TEMP_DIR/$aptss_asset" "$aptss_checksum"
-  "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$aptss_asset"
-  command -v aptss >/dev/null 2>&1 || { echo 'aptss 安装完成但命令不可用。' >&2; exit 1; }
+
+  # A fresh aptss package does not necessarily have Spark repository lists yet.
+  # Refresh only when no Packages list exists, avoiding a network update on
+  # every installer run while making aptss search/download usable immediately.
+  if ! find /var/lib/aptss/lists -maxdepth 1 -type f -name '*_Packages' -print -quit 2>/dev/null | grep -q .; then
+    echo '正在初始化 aptss 软件源目录…'
+    if ! "${SUDO[@]}" aptss ssupdate; then
+      echo 'aptss 软件源初始化失败；联网后请执行 sudo aptss ssupdate。' >&2
+      exit 1
+    fi
+  fi
 }
 
 release_url() {
@@ -280,7 +292,7 @@ install_source() {
 case "$FAMILY" in
   deb)
     deb_release=1
-    [ "$RELEASE_VERSION" = '0.8.3' ] && deb_release=2
+    [ "$RELEASE_VERSION" = '0.8.3' ] && deb_release=3
     asset="spark-store-tui_${RELEASE_VERSION}-${deb_release}_${DEB_ARCH}.deb"
     checksum=""
     [ "$asset" = 'spark-store-tui_0.8.0-1_amd64.deb' ] && checksum='f081a2ed817410c72f810ca5cc97cd2cbbb4b6bec19cf8c15152d2264515f738'
@@ -292,6 +304,9 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui_0.8.3-2_amd64.deb' ] && checksum='5f9e3bf96540bf6fd20c78ca90607eb673b9f6b6f4ec77c5e557c464dff07db3'
     [ "$asset" = 'spark-store-tui_0.8.3-2_arm64.deb' ] && checksum='bea80f2ab05b4670651ffcd997934a39c4c19e911d88350e62313409202db5fd'
     [ "$asset" = 'spark-store-tui_0.8.3-2_loong64.deb' ] && checksum='6f674048df3df28de48b903097b2faa2bbb225c6ef3db4a8d1a9481415859a9d'
+    [ "$asset" = 'spark-store-tui_0.8.3-3_amd64.deb' ] && checksum='118da319fff9b0828c79fdf8176b0f44e0179b12c3aa22012030772918c1846f'
+    [ "$asset" = 'spark-store-tui_0.8.3-3_arm64.deb' ] && checksum='d8bbd8124bf63b1ea4730a3693c46664c198de82d5ff7c11353666ec978fc2ae'
+    [ "$asset" = 'spark-store-tui_0.8.3-3_loong64.deb' ] && checksum='c50b8922af477c8db58d778a640b73f82d40eee31a6cdc67ac3b3b1255199891'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       ensure_debian_backend
@@ -303,7 +318,7 @@ case "$FAMILY" in
     ;;
   rpm|suse)
     rpm_release=1
-    [ "$RELEASE_VERSION" = '0.8.3' ] && rpm_release=3
+    [ "$RELEASE_VERSION" = '0.8.3' ] && rpm_release=4
     asset="spark-store-tui-${RELEASE_VERSION}-${rpm_release}.${RPM_ARCH}.rpm"
     checksum=""
     [ "$asset" = 'spark-store-tui-0.8.0-1.x86_64.rpm' ] && checksum='e7e230456ddb0581c0dc3b45d1a620aa3cfe634344ccaddfa285023a05a545be'
@@ -321,6 +336,9 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui-0.8.3-3.x86_64.rpm' ] && checksum='e51d6653d6b81c39fe65cd2109ee31d89eb5e6ae0f3919e73ae329d45a9cf64c'
     [ "$asset" = 'spark-store-tui-0.8.3-3.aarch64.rpm' ] && checksum='f4dcde1fa9b1a9f4aa76d53f93cdc9e68e1795fff7e7974a9692d42611255e65'
     [ "$asset" = 'spark-store-tui-0.8.3-3.loongarch64.rpm' ] && checksum='937601e2a6d69618000933a538028c6bf5b12bce4c85cd11eebfa100cbea0e78'
+    [ "$asset" = 'spark-store-tui-0.8.3-4.x86_64.rpm' ] && checksum='c8e726c94e693e320e5104963ee3e1f3ea8267342a7a4914e32280c17081abab'
+    [ "$asset" = 'spark-store-tui-0.8.3-4.aarch64.rpm' ] && checksum='40b5519c141fc5acb51c1b414144da754d09fbd94a6e0a3de1f7f3f9cf56896f'
+    [ "$asset" = 'spark-store-tui-0.8.3-4.loongarch64.rpm' ] && checksum='3f88ae8fb8dc16dd3a11401ef529499e426f5181a48161c120721d4a3010a051'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
       verify "$TEMP_DIR/$asset" "$checksum"
       if [ "$FAMILY" = rpm ]; then

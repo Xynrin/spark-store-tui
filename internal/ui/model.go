@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -61,6 +62,13 @@ type downloadFinishedMsg struct {
 
 type uninstallFinishedMsg struct{ err error }
 type installFinishedMsg struct{ err error }
+type updateFinishedMsg struct{ err error }
+
+type packageStatusMsg struct {
+	appID  string
+	status system.AppPackageStatus
+	err    error
+}
 
 // Downloader is kept narrow so UI tests and alternate task runners do not
 // need to depend on the download implementation.
@@ -69,8 +77,16 @@ type Downloader interface {
 	ExistingPath(domain.App) string
 }
 
+// ProcessDownloader yields terminal ownership while aptss/aria2 is running so
+// users can see native progress and the operation cannot look silently stuck.
+type ProcessDownloader interface {
+	PrepareDownload(domain.App) (*exec.Cmd, domain.DownloadTask, error)
+	FinishDownload(domain.DownloadTask, error) (domain.DownloadTask, error)
+}
+
 // Model receives normalized providers rather than source-specific URLs. The
-// The UI uses the single live Spark Store provider and its Metalink mirrors.
+// UI uses one live Spark Store provider and delegates package operations to the
+// distribution's official aptss/APM backend.
 type Model struct {
 	sources              []domain.CatalogSource
 	loaders              map[string]provider.CatalogProvider
@@ -102,6 +118,10 @@ type Model struct {
 	pendingPackage       string
 	deleteAfterUninstall bool
 	downloading          bool
+	checkingPackage      bool
+	pendingUpdate        bool
+	packageStatus        system.AppPackageStatus
+	packageStatusAppID   string
 }
 
 var (
@@ -188,6 +208,7 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.apps = message.apps
 		m.selectedApp = 0
+		m.clearPackageStatus()
 		m.previewRequest++
 		if message.err != nil {
 			m.loadError = message.err.Error()
@@ -239,6 +260,36 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.status = "安装完成；安装包保留在 " + m.pendingPackage
 		}
+	case packageStatusMsg:
+		if message.appID != m.selectedAppValue().ID {
+			return m, nil
+		}
+		m.checkingPackage = false
+		m.packageStatusAppID = message.appID
+		if message.err != nil {
+			m.packageStatusAppID = ""
+			m.status = "检查应用更新失败：" + message.err.Error()
+			return m, nil
+		}
+		m.packageStatus = message.status
+		if !message.status.Installed {
+			m.status = "当前应用尚未安装；按 D 下载并安装"
+		} else if message.status.UpdateAvailable {
+			m.pendingUpdate = true
+			m.status = fmt.Sprintf("发现更新 %s → %s：P 或 Enter 升级；Esc 取消", message.status.InstalledVersion, message.status.CandidateVersion)
+		} else {
+			m.status = "当前应用已是软件源中的最新版本：" + message.status.InstalledVersion
+		}
+	case updateFinishedMsg:
+		m.pendingUpdate = false
+		if message.err != nil {
+			m.status = "应用更新失败：" + message.err.Error()
+		} else {
+			m.packageStatus.Installed = true
+			m.packageStatus.InstalledVersion = m.packageStatus.CandidateVersion
+			m.packageStatus.UpdateAvailable = false
+			m.status = "应用更新完成"
+		}
 	case tea.KeyPressMsg:
 		return m.handleKey(message.String())
 	}
@@ -258,6 +309,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		case "backspace", "ctrl+h":
 			m.query = trimLastRune(m.query)
 			m.selectedApp = 0
+			m.clearPackageStatus()
 		default:
 			if key == "space" {
 				key = " "
@@ -265,11 +317,32 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			if utf8.RuneCountInString(key) == 1 {
 				m.query += key
 				m.selectedApp = 0
+				m.clearPackageStatus()
 			}
 		}
 		m.previewImage = ""
 		m.previewRequest++
 		return m, m.schedulePreview()
+	}
+	if m.pendingUpdate {
+		switch key {
+		case "p", "enter":
+			process, err := system.UpdateProcess(m.host, m.selectedAppValue())
+			m.pendingUpdate = false
+			if err != nil {
+				m.status = "无法更新：" + err.Error()
+				return m, nil
+			}
+			m.status = "正在通过 aptss/apm 更新应用…"
+			return m, tea.ExecProcess(process, func(err error) tea.Msg { return updateFinishedMsg{err: err} })
+		case "esc":
+			m.pendingUpdate = false
+			m.status = "已取消应用更新"
+			return m, nil
+		default:
+			m.status = "发现可用更新：P 或 Enter 升级；Esc 取消"
+			return m, nil
+		}
 	}
 	if m.pendingUninstall {
 		switch key {
@@ -381,6 +454,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.apps = nil
 			m.previewImage = ""
 			m.descriptionExpanded = false
+			m.clearPackageStatus()
 			m.previewRequest++
 			m.loading = true
 			m.loadError = ""
@@ -392,6 +466,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.selectedApp = wrap(m.selectedApp+delta, len(m.filteredApps()))
 			m.previewImage = ""
 			m.descriptionExpanded = false
+			m.clearPackageStatus()
 			m.previewRequest++
 			return m, m.schedulePreview()
 		}
@@ -402,6 +477,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.loading = true
 		m.loadError = ""
 		m.status = "正在刷新目录…"
+		m.clearPackageStatus()
 		return m, m.loadApps()
 	case "[", "]":
 		if len(m.categories) == 0 {
@@ -417,6 +493,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.apps = nil
 		m.previewImage = ""
 		m.descriptionExpanded = false
+		m.clearPackageStatus()
 		m.previewRequest++
 		m.loading = true
 		m.status = "正在切换分类…"
@@ -442,8 +519,8 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.status = "将通过 Amber APM 安装：I 或 Enter 确认；Esc 取消"
 			return m, nil
 		}
-		if m.selectedAppValue().MetalinkURL == "" {
-			m.status = "当前应用没有可下载的 Metalink 资产"
+		if m.selectedAppValue().PackageName == "" || m.selectedAppValue().Filename == "" {
+			m.status = "当前应用没有可交给 aptss 的软件包元数据"
 			return m, nil
 		}
 		if m.downloader != nil {
@@ -455,8 +532,20 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.downloading = true
-		m.status = "正在解析镜像并下载/续传…"
+		m.status = "正在通过 aptss/aria2 下载或续传…"
 		return m, m.downloadApp()
+	case "p":
+		if m.checkingPackage {
+			m.status = "正在查询所选应用的安装与更新状态"
+			return m, nil
+		}
+		if m.selectedAppValue().ID == "" {
+			m.status = "当前没有可检查更新的应用"
+			return m, nil
+		}
+		m.checkingPackage = true
+		m.status = "正在通过 aptss/apm 检查所选应用更新…"
+		return m, m.checkPackageStatus()
 	case "u":
 		if _, err := system.UninstallProcess(m.host, m.selectedAppValue()); err != nil {
 			m.status = "无法卸载：" + err.Error()
@@ -478,7 +567,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.status = "当前发行版尚未配置图片预览依赖；请安装 chafa"
 		}
 	case "?":
-		m.status = "↑↓ 选择 · / 搜索 · D 下载 · U 卸载 · E 简介 · [ ] 分类 · R 刷新 · q 退出"
+		m.status = "↑↓ 选择 · / 搜索 · D 下载 · P 更新 · U 卸载 · E 简介 · [ ] 分类 · R 刷新 · q 退出"
 	}
 	return m, nil
 }
@@ -486,6 +575,16 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 func (m Model) downloadApp() tea.Cmd {
 	app := m.selectedAppValue()
 	downloader := m.downloader
+	if processDownloader, ok := downloader.(ProcessDownloader); ok {
+		process, task, err := processDownloader.PrepareDownload(app)
+		if err != nil {
+			return func() tea.Msg { return downloadFinishedMsg{task: task, err: err} }
+		}
+		return tea.ExecProcess(process, func(runErr error) tea.Msg {
+			completed, finishErr := processDownloader.FinishDownload(task, runErr)
+			return downloadFinishedMsg{task: completed, err: finishErr}
+		})
+	}
 	return func() tea.Msg {
 		if downloader == nil {
 			return downloadFinishedMsg{err: fmt.Errorf("download service is not configured")}
@@ -495,6 +594,22 @@ func (m Model) downloadApp() tea.Cmd {
 		task, err := downloader.Download(ctx, app)
 		return downloadFinishedMsg{task: task, err: err}
 	}
+}
+
+func (m Model) checkPackageStatus() tea.Cmd {
+	app := m.selectedAppValue()
+	host := m.host
+	return func() tea.Msg {
+		status, err := system.QueryPackageStatus(host, app)
+		return packageStatusMsg{appID: app.ID, status: status, err: err}
+	}
+}
+
+func (m *Model) clearPackageStatus() {
+	m.checkingPackage = false
+	m.pendingUpdate = false
+	m.packageStatus = system.AppPackageStatus{}
+	m.packageStatusAppID = ""
 }
 
 func (m Model) installPackage() tea.Cmd {
@@ -585,8 +700,8 @@ func (m Model) renderHome() string {
 	intro := strings.Join([]string{
 		accent.Render("✦ 星火终端助手"),
 		header.Render("在终端中浏览、下载和管理 Linux 软件"),
-		"接入星火商店公开 metadata 与官方 Metalink 镜像。",
-		"按网络环境选择镜像，下载后校验软件包。",
+		"公开 metadata 用于展示；Debian 应用交给 aptss 管理。",
+		"aptss 负责搜索软件源、镜像下载、校验、安装与更新。",
 		"",
 		good.Render("Enter  加载并浏览星火商店"),
 		muted.Render("B 浏览应用    ? 帮助    q 退出"),
@@ -613,7 +728,7 @@ func (m Model) renderBrowse() string {
 	} else {
 		content = m.renderWideBrowse()
 	}
-	footer := muted.Render("↑↓ 导航  / 搜索  D 下载  U 卸载  E 简介  [ ] 分类  R 刷新  Esc 首页  q 退出") + "  " + accent.Render(m.status)
+	footer := muted.Render("↑↓ 导航  / 搜索  D 下载  P 更新  U 卸载  E 简介  [ ] 分类  R 刷新  Esc 首页  q 退出") + "  " + accent.Render(m.status)
 	return lipgloss.JoinVertical(lipgloss.Left, title, "", content, "", footer)
 }
 
@@ -651,7 +766,7 @@ func (m Model) renderNarrowBrowse() string {
 	if app.ID != "" {
 		lines = append(lines, "", accent.Render("详情"), truncate(valueOr(app.Description, "暂无简介"), 30))
 	}
-	lines = append(lines, muted.Render("/ 搜索  D 下载  U 卸载  E 简介  [ ] 分类  q 退出"), accent.Render(m.status))
+	lines = append(lines, muted.Render("/ 搜索  D 下载  P 更新  U 卸载  E 简介  [ ] 分类  q 退出"), accent.Render(m.status))
 	return strings.Join(lines, "\n")
 }
 
@@ -723,12 +838,28 @@ func (m Model) renderDetails(width int) string {
 	if m.descriptionExpanded {
 		descriptionHint = muted.Render("按 E 收起简介")
 	}
-	downloadHint := muted.Render("D 下载 · U 卸载")
+	downloadHint := muted.Render("D 下载 · P 检查更新 · U 卸载")
 	if m.downloading {
 		downloadHint = accent.Render("下载任务运行中…")
 	}
-	lines := []string{accent.Render("应用详情"), header.Render(valueOr(app.Name, "加载中")), "版本：" + valueOr(app.Version, "待加载"), "包格式：" + valueOr(app.PackageFormat, "待加载"), "大小：" + valueOr(app.Size, "待加载"), "来源：" + sourceLabel(app.SourceID), "", description, descriptionHint, "", image, "", downloadHint, muted.Render("优先校验 SHA-256；当前 Spark Metalink 未提供时会标记为未校验")}
+	lines := []string{accent.Render("应用详情"), header.Render(valueOr(app.Name, "加载中")), "版本：" + valueOr(app.Version, "待加载"), "包格式：" + valueOr(app.PackageFormat, "待加载"), "大小：" + valueOr(app.Size, "待加载"), "来源：" + sourceLabel(app.SourceID), m.packageStatusLine(app), "", description, descriptionHint, "", image, "", downloadHint, muted.Render("Debian：aptss/aria2 负责镜像选择、续传和软件源摘要校验")}
 	return panel.Width(width - 4).Render(strings.Join(lines, "\n"))
+}
+
+func (m Model) packageStatusLine(app domain.App) string {
+	if m.checkingPackage && m.packageStatusAppID == "" {
+		return "安装状态：正在查询…"
+	}
+	if app.ID == "" || m.packageStatusAppID != app.ID {
+		return "安装状态：按 P 检查更新"
+	}
+	if !m.packageStatus.Installed {
+		return "安装状态：未安装"
+	}
+	if m.packageStatus.UpdateAvailable {
+		return fmt.Sprintf("安装状态：%s，可更新至 %s", m.packageStatus.InstalledVersion, m.packageStatus.CandidateVersion)
+	}
+	return "安装状态：已是最新 " + m.packageStatus.InstalledVersion
 }
 
 func (m Model) selectedAppValue() domain.App {
