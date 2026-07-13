@@ -1,4 +1,8 @@
-# spark-store-tui v0.8.1
+# spark-store-tui v0.8.2
+
+## LoongArch release
+
+- Add `loong64` Debian package and `loongarch64` RPM package.
 
 - 重构为 Go 原生 TUI，应用目录收敛为 Spark Store。
 - 下载任务持久化；重启后识别完成包和中断 `.part`，按 `D` 可继续。

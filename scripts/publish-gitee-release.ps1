@@ -1,5 +1,5 @@
 param(
-    [string]$Version = 'v0.8.1',
+    [string]$Version = 'v0.8.2',
     [string]$AssetDirectory = 'dist'
 )
 

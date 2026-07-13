@@ -27,7 +27,7 @@ jobs:
           make source
           mkdir -p dist
           mv spark-store-tui-source-*.tar.gz dist/
-          for arch in amd64 arm64; do
+          for arch in amd64 arm64 loong64; do
             make ARCH="$arch" build
             mv "spark-store-tui_"*"_${arch}.deb" dist/
           done
@@ -36,7 +36,7 @@ jobs:
           mkdir -p "$HOME/rpmbuild/SOURCES" "$HOME/rpmbuild/SPECS"
           cp dist/spark-store-tui-source-*.tar.gz "$HOME/rpmbuild/SOURCES/"
           cp packaging/rpm/spark-store-tui.spec "$HOME/rpmbuild/SPECS/"
-          for target in x86_64 aarch64; do
+          for target in x86_64 aarch64 loongarch64; do
             rpmbuild -bb --nodeps --target "$target" "$HOME/rpmbuild/SPECS/spark-store-tui.spec"
           done
           find "$HOME/rpmbuild/RPMS" -name '*.rpm' -exec cp {} dist/ \;
