@@ -5,7 +5,7 @@ Summary:        Native terminal UI for Spark Store software management
 
 License:        GPL-3.0-only
 URL:            https://github.com/Xynrin/spark-store-tui
-Source0:        https://github.com/Xynrin/%{name}/releases/download/v%{version}/%{name}-source-%{version}.tar.gz
+Source0:        https://github.com/Xynrin/%{name}/releases/download/v%{version}/%{name}-source-%{version}-r2.tar.gz
 
 BuildRequires:  go >= 1.25
 Requires:       ca-certificates
