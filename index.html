@@ -1,17 +1,25 @@
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Spark Store TUI APT Repository</title></head>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spark Store TUI 旧仓库迁移说明</title>
+  <style>
+    body { max-width: 820px; margin: 3rem auto; padding: 0 1.25rem; font: 16px/1.65 system-ui, sans-serif; color: #202124; }
+    h1 { color: #b3261e; }
+    pre { overflow-x: auto; padding: 1rem; border-radius: 8px; background: #f5f5f5; }
+    .notice { padding: 1rem; border-left: 4px solid #b3261e; background: #fff3f2; }
+  </style>
+</head>
 <body>
-<h1>Spark Store TUI APT Repository</h1>
-<pre>sudo apt update
-sudo apt install -y ca-certificates curl
-sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL https://xynrin.github.io/spark-store-tui/spark-store-tui-archive-keyring.gpg | sudo tee /etc/apt/keyrings/spark-store-tui-archive-keyring.gpg &gt;/dev/null
-printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/spark-store-tui-archive-keyring.gpg] https://xynrin.github.io/spark-store-tui stable main' | sudo tee /etc/apt/sources.list.d/spark-store-tui.list
+  <h1>此 0.7.2 软件仓库已停止维护</h1>
+  <p class="notice">这里的 APT/RPM 索引仅为避免旧用户的软件源更新报错而保留。请勿继续从此仓库安装 Spark Store TUI。</p>
+  <p>当前维护版本为 <strong>0.8.3</strong>。Debian/Ubuntu 用户可先移除旧 APT 源，再使用新的双镜像安装器；Fedora 等其他系统直接运行安装器即可：</p>
+  <pre>sudo rm -f /etc/apt/sources.list.d/spark-store-tui.list
 sudo apt update
-sudo apt install spark-store-tui</pre>
-<p>Signing key fingerprint: <code>1AE6D4E7C4DB8C016F72F8C6A4D276F9CF8E57A9</code></p>
-<p>Package: spark-store-tui 0.7.2-1</p>
-<p><a href="https://github.com/Xynrin/spark-store-tui">GitHub repository</a></p>
+bash &lt;(curl -fsSL https://raw.githubusercontent.com/Xynrin/spark-store-tui/main/scripts/install-sparkstore.sh)</pre>
+  <p>国内网络也可使用 Gitee：</p>
+  <pre>bash &lt;(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/master/scripts/install-sparkstore.sh) --mirror gitee</pre>
+  <p><a href="https://github.com/Xynrin/spark-store-tui/releases/tag/v0.8.3">下载 v0.8.3</a> · <a href="https://github.com/Xynrin/spark-store-tui">项目主页</a></p>
 </body>
 </html>
