@@ -74,6 +74,22 @@ func TestInstallProcessFallsBackToAPTSS(t *testing.T) {
 	}
 }
 
+func TestInstallProcessFindsBundledSSInstall(t *testing.T) {
+	ssinstall := t.TempDir() + "/ssinstall"
+	if err := os.WriteFile(ssinstall, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	process, err := debianInstallProcess("/tmp/code.deb", func(string) (string, error) {
+		return "", os.ErrNotExist
+	}, []string{ssinstall})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !contains(process.Args, ssinstall) {
+		t.Fatalf("arguments = %q, want bundled ssinstall %q", process.Args, ssinstall)
+	}
+}
+
 func TestInstallProcessUsesAPMForArch(t *testing.T) {
 	bin := t.TempDir()
 	apm := bin + "/apm"

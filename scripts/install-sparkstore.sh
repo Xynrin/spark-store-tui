@@ -262,7 +262,7 @@ install_source() {
   source_ref="refs/tags/v$RELEASE_VERSION"
   # v0.8.3 predates the RPM/APM packaging revision. Pin its source fallback
   # to the reviewed r2 snapshot instead of rebuilding the old tag.
-  [ "$RELEASE_VERSION" = '0.8.3' ] && source_ref='9e565152b9f15fea1fdd965eebe6347d1266cf58'
+  [ "$RELEASE_VERSION" = '0.8.3' ] && source_ref='50aec7c32aa1c92f38ef37929ae683bac6a5d393'
   git init -q "$TEMP_DIR/source"
   git -C "$TEMP_DIR/source" remote add origin "$repo_url"
   git -C "$TEMP_DIR/source" fetch --depth 1 origin "$source_ref"
