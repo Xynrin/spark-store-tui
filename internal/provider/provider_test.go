@@ -34,7 +34,7 @@ func TestSparkMetadataProviderReadsArchitectureAndCategory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(apps) != 2 || apps[1].Name != "Audacity" || apps[0].IconURL != "https://example.test/vlc.png" || apps[0].ScreenshotURLs[0] != "https://example.test/vlc-1.png" || apps[0].MetalinkURL != server.URL+"/arm64-store/audio/vlc/vlc_3.0.20_amd64.deb.metalink" {
+	if len(apps) != 2 || apps[1].Name != "Audacity" || apps[0].Architecture != "arm64-store" || apps[0].IconURL != "https://example.test/vlc.png" || apps[0].ScreenshotURLs[0] != "https://example.test/vlc-1.png" || apps[0].MetalinkURL != server.URL+"/arm64-store/audio/vlc/vlc_3.0.20_amd64.deb.metalink" {
 		t.Fatalf("unexpected apps: %+v", apps)
 	}
 }

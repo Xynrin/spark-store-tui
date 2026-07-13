@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Xynrin/spark-store-tui/internal/domain"
@@ -51,6 +52,9 @@ func (s *Service) Download(ctx context.Context, app domain.App) (domain.Download
 	if err != nil {
 		return domain.DownloadTask{}, err
 	}
+	if err := validateArchitecture(app.Architecture, asset.Filename); err != nil {
+		return domain.DownloadTask{}, err
+	}
 	task := s.newTask(app, asset.Filename)
 	for _, url := range asset.URLs {
 		task.URL = url
@@ -63,6 +67,55 @@ func (s *Service) Download(ctx context.Context, app domain.App) (domain.Download
 		err = downloadErr
 	}
 	return domain.DownloadTask{}, fmt.Errorf("all Metalink mirrors failed: %w", err)
+}
+
+// validateArchitecture prevents a catalog or Metalink routing error from
+// downloading a binary for another CPU. Files without an architecture marker
+// (for example source archives) are left to their package-format handler.
+func validateArchitecture(storePath, filename string) error {
+	expected := architectureForStorePath(storePath)
+	if expected == "" || filename == "" {
+		return nil
+	}
+	actual := architectureInFilename(filename)
+	if actual == "" || actual == expected {
+		return nil
+	}
+	return fmt.Errorf("refusing incompatible %s package %q for %s", actual, filename, expected)
+}
+
+func architectureForStorePath(storePath string) string {
+	switch storePath {
+	case "amd64-store":
+		return "amd64"
+	case "arm64-store":
+		return "arm64"
+	case "loong64-store":
+		return "loong64"
+	case "riscv64-store":
+		return "riscv64"
+	default:
+		return ""
+	}
+}
+
+func architectureInFilename(filename string) string {
+	fields := strings.FieldsFunc(strings.ToLower(filename), func(r rune) bool {
+		return r == '_' || r == '-' || r == '.'
+	})
+	for _, field := range fields {
+		switch field {
+		case "amd64", "x86_64":
+			return "amd64"
+		case "arm64", "aarch64":
+			return "arm64"
+		case "loong64", "loongarch64":
+			return "loong64"
+		case "riscv64":
+			return "riscv64"
+		}
+	}
+	return ""
 }
 
 func (s *Service) newTask(app domain.App, filename string) domain.DownloadTask {

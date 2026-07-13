@@ -3,7 +3,7 @@
 # Gitee release mirror and never silently installs an older AUR package.
 set -euo pipefail
 
-RELEASE_VERSION="${SPARKSTORE_VERSION:-0.8.2}"
+RELEASE_VERSION="${SPARKSTORE_VERSION:-0.8.3}"
 MIRROR="${SPARKSTORE_MIRROR:-}"
 OWNER="Xynrin"
 REPOSITORY="spark-store-tui"
@@ -18,7 +18,7 @@ usage() {
 Usage: install-sparkstore.sh [--mirror github|gitee]
 
 Environment:
-  SPARKSTORE_VERSION  Version without v prefix (default: 0.8.2)
+  SPARKSTORE_VERSION  Version without v prefix (default: 0.8.3)
   SPARKSTORE_MIRROR   github or gitee
 EOF
 }

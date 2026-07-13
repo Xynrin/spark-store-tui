@@ -76,6 +76,7 @@ func (p SparkMetadataProvider) ListApps(ctx context.Context, query Query) ([]dom
 			Size:           entry.Size,
 			Description:    entry.More,
 			SourceID:       p.Catalog.ID,
+			Architecture:   arch,
 			Category:       query.Category,
 			PackageName:    packageName,
 			Filename:       entry.Filename,

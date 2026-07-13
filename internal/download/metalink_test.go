@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -89,5 +90,25 @@ func TestServiceRecoversInterruptedTaskAndReusesIt(t *testing.T) {
 	reused := service.newTask(domain.App{ID: "spark:app", SourceID: "spark-store"}, "app.deb")
 	if reused.ID != original.ID || reused.Status != domain.TaskInterrupted {
 		t.Fatalf("reused task = %+v", reused)
+	}
+}
+
+func TestServiceRejectsIncompatibleMetalinkArchitecture(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/asset.metalink" {
+			t.Fatalf("unexpected download request: %s", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`<?xml version="1.0"?><metalink><files><file name="app_amd64.deb"><resources><url>https://example.test/app_amd64.deb</url></resources></file></files></metalink>`))
+	}))
+	defer server.Close()
+
+	service := NewService(server.Client(), &memoryStore{}, t.TempDir())
+	_, err := service.Download(context.Background(), domain.App{
+		Name:         "App",
+		Architecture: "loong64-store",
+		MetalinkURL:  server.URL + "/asset.metalink",
+	})
+	if err == nil || !strings.Contains(err.Error(), "incompatible amd64") {
+		t.Fatalf("error = %v, want incompatible amd64 error", err)
 	}
 }

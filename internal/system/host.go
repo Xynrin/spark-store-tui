@@ -65,6 +65,8 @@ func ArchitectureFromGOARCH(goarch string) string {
 		return "x86_64"
 	case "arm64":
 		return "aarch64"
+	case "loong64":
+		return "loongarch64"
 	default:
 		return goarch
 	}
@@ -72,8 +74,13 @@ func ArchitectureFromGOARCH(goarch string) string {
 
 func StorePath(kind, architecture string) string {
 	prefix := "amd64"
-	if architecture == "aarch64" {
+	switch architecture {
+	case "aarch64", "arm64":
 		prefix = "arm64"
+	case "loongarch64", "loong64":
+		prefix = "loong64"
+	case "riscv64":
+		prefix = "riscv64"
 	}
 	return prefix + "-" + kind
 }

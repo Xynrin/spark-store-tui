@@ -15,8 +15,14 @@ func TestFamilyAndArchitecture(t *testing.T) {
 	if got := ArchitectureFromGOARCH("arm64"); got != "aarch64" {
 		t.Fatalf("architecture = %q, want aarch64", got)
 	}
+	if got := ArchitectureFromGOARCH("loong64"); got != "loongarch64" {
+		t.Fatalf("architecture = %q, want loongarch64", got)
+	}
 	if got := StorePath("store", "aarch64"); got != "arm64-store" {
 		t.Fatalf("store path = %q", got)
+	}
+	if got := StorePath("store", "loongarch64"); got != "loong64-store" {
+		t.Fatalf("store path = %q, want loong64-store", got)
 	}
 }
 

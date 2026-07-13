@@ -42,6 +42,7 @@ type App struct {
 	Size           string
 	Description    string
 	SourceID       string
+	Architecture   string
 	Checksum       string
 	Category       string
 	PackageName    string
