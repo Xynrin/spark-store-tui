@@ -24,12 +24,8 @@ func UninstallCommand(host Host, app domain.App) (string, error) {
 	switch host.Family {
 	case "deb":
 		return "sudo apt-get remove -y " + packageName, nil
-	case "arch":
-		return "sudo pacman -Rns --noconfirm " + packageName, nil
-	case "rpm":
-		return "sudo dnf remove -y " + packageName, nil
-	case "suse":
-		return "sudo zypper --non-interactive remove " + packageName, nil
+	case "arch", "rpm", "suse":
+		return "sudo apm remove -y " + packageName, nil
 	default:
 		return "", fmt.Errorf("uninstall is not configured for %s", host.Family)
 	}
@@ -39,15 +35,14 @@ func UninstallCommand(host Host, app domain.App) (string, error) {
 // does not start the process; the TUI always asks for confirmation first.
 func InstallProcess(host Host, app domain.App, packagePath string) (*exec.Cmd, error) {
 	switch host.Family {
-	case "arch":
+	case "arch", "rpm", "suse":
 		if app.PackageName == "" || !safePackageName(app.PackageName) {
-			return nil, fmt.Errorf("invalid Arch package name %q", app.PackageName)
+			return nil, fmt.Errorf("invalid APM package name %q", app.PackageName)
 		}
-		if _, err := exec.LookPath("yay"); err != nil {
-			return nil, fmt.Errorf("Arch 安装需要 yay：%w", err)
+		if _, err := exec.LookPath("apm"); err != nil {
+			return nil, fmt.Errorf("此发行版安装星火应用需要 Amber APM（apm）：%w", err)
 		}
-		// yay refuses to run as root, so do not route this through sudo.
-		return exec.Command("yay", "-S", "--needed", app.PackageName), nil
+		return privilegedCommand("apm", "install", app.PackageName, "-y"), nil
 	}
 
 	if packagePath == "" {
@@ -83,12 +78,11 @@ func UninstallProcess(host Host, app domain.App) (*exec.Cmd, error) {
 	switch host.Family {
 	case "deb":
 		return privilegedCommand("apt-get", "remove", "-y", packageName), nil
-	case "arch":
-		return privilegedCommand("pacman", "-Rns", "--noconfirm", packageName), nil
-	case "rpm":
-		return privilegedCommand("dnf", "remove", "-y", packageName), nil
-	case "suse":
-		return privilegedCommand("zypper", "--non-interactive", "remove", packageName), nil
+	case "arch", "rpm", "suse":
+		if _, err := exec.LookPath("apm"); err != nil {
+			return nil, fmt.Errorf("此发行版卸载星火应用需要 Amber APM（apm）：%w", err)
+		}
+		return privilegedCommand("apm", "remove", packageName, "-y"), nil
 	default:
 		return nil, fmt.Errorf("uninstall is not configured for %s", host.Family)
 	}

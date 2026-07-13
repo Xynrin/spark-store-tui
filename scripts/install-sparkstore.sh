@@ -90,6 +90,25 @@ ensure_image_preview() {
   esac
 }
 
+# Amber APM is the compatibility layer used by Spark Store applications on
+# Arch and Fedora. The commands follow Amber PM's published installation path.
+ensure_amber_runtime() {
+  command -v apm >/dev/null 2>&1 && return 0
+  echo '正在补齐 Amber APM 运行环境…'
+  case "$FAMILY" in
+    arch)
+      if ! yay -S --needed spark-store; then
+        echo '提示：Amber APM 安装失败；TUI 已安装，但 Arch 应用安装功能暂不可用。' >&2
+      fi
+      ;;
+    rpm)
+      if ! "${SUDO[@]}" dnf -y copr enable xmp360/spark-store || ! "${SUDO[@]}" dnf install -y spark-store; then
+        echo '提示：Amber APM 安装失败；TUI 已安装，但 Fedora 应用安装功能暂不可用。' >&2
+      fi
+      ;;
+  esac
+}
+
 if [ "$FAMILY" = arch ]; then
   command -v yay >/dev/null || { echo 'Arch 系统请先安装 yay。' >&2; exit 1; }
   aur_version=$(yay -Si spark-store-tui 2>/dev/null | awk -F: '/^Version[[:space:]]*:/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
@@ -99,6 +118,7 @@ if [ "$FAMILY" = arch ]; then
   esac
   yay -S --needed spark-store-tui
   ensure_image_preview
+  ensure_amber_runtime
   exit 0
 fi
 
@@ -223,6 +243,7 @@ case "$FAMILY" in
         "${SUDO[@]}" zypper --non-interactive install "$TEMP_DIR/$asset"
       fi
       ensure_image_preview
+      [ "$FAMILY" != rpm ] || ensure_amber_runtime
     else
       confirm_source_build "$asset"
     fi

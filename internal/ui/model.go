@@ -433,13 +433,13 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.status = "下载任务正在运行"
 			return m, nil
 		}
-		if m.host.Family == "arch" {
+		if m.host.Family == "arch" || m.host.Family == "rpm" || m.host.Family == "suse" {
 			if m.selectedAppValue().PackageName == "" {
-				m.status = "当前应用没有可用于 yay 的包名"
+				m.status = "当前应用没有可用于 APM 的包名"
 				return m, nil
 			}
 			m.pendingInstall = true
-			m.status = "Arch 将通过 yay 安装：I 或 Enter 确认；Esc 取消"
+			m.status = "将通过 Amber APM 安装：I 或 Enter 确认；Esc 取消"
 			return m, nil
 		}
 		if m.selectedAppValue().MetalinkURL == "" {

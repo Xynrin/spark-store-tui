@@ -43,10 +43,10 @@ func TestInstallProcess(t *testing.T) {
 	}
 }
 
-func TestInstallProcessUsesYayForArch(t *testing.T) {
+func TestInstallProcessUsesAPMForArch(t *testing.T) {
 	bin := t.TempDir()
-	yay := bin + "/yay"
-	if err := os.WriteFile(yay, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	apm := bin + "/apm"
+	if err := os.WriteFile(apm, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin)
@@ -54,7 +54,11 @@ func TestInstallProcessUsesYayForArch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := process.Args, []string{"yay", "-S", "--needed", "vscode"}; !reflect.DeepEqual(got, want) {
+	want := []string{"apm", "install", "vscode", "-y"}
+	if os.Geteuid() != 0 {
+		want = append([]string{"sudo"}, want...)
+	}
+	if got := process.Args; !reflect.DeepEqual(got, want) {
 		t.Fatalf("arguments = %q, want %q", got, want)
 	}
 }
