@@ -33,4 +33,4 @@ jobs:
         env:
           GIT_AUTHOR_NAME: Xynrin
           GIT_AUTHOR_EMAIL: xynrin@163.com
-        run: scripts/publish-aur.sh
+        run: bash scripts/publish-aur.sh
