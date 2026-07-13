@@ -53,7 +53,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
 | 通用构建 | 源码包 | `spark-store-tui-source-0.8.0.tar.gz` |
 
-GitHub Release 是主发布渠道；Gitee 同步相同 tag、源码与二进制发布物。请只下载与本机架构匹配的包。
+GitHub Release 是当前二进制发布渠道。Gitee 已同步相同的源码与 tag；同步 Gitee Release 附件需要该仓库的 Gitee OpenAPI Personal Access Token。仓库内现有的 Gitee APT/RPM 索引仍是旧 `0.7.2`，在重新签名并更新前不能作为 `0.8.0` 下载源。请只下载与本机架构匹配的包。
 
 ### Debian / Ubuntu
 
