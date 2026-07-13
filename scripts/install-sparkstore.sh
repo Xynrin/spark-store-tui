@@ -133,6 +133,20 @@ if [ -z "$MIRROR" ]; then
 fi
 case "$MIRROR" in github|gitee) ;; *) echo '镜像只能是 github 或 gitee。' >&2; exit 2 ;; esac
 
+ensure_installer_tools() {
+  command -v awk >/dev/null 2>&1 && return 0
+  echo '正在补齐安装器校验依赖 gawk…'
+  case "$FAMILY" in
+    arch) yay -S --needed gawk ;;
+    deb) "${SUDO[@]}" apt-get update; "${SUDO[@]}" apt-get install -y gawk ;;
+    rpm) "${SUDO[@]}" dnf install -y gawk ;;
+    suse) "${SUDO[@]}" zypper --non-interactive install gawk ;;
+  esac
+  command -v awk >/dev/null 2>&1 || { echo '未能安装 gawk，无法校验下载文件。' >&2; exit 1; }
+}
+
+ensure_installer_tools
+
 TEMP_DIR=$(mktemp -d)
 # apt downloads local packages as the _apt user when possible.  Allow it to
 # traverse this temporary directory so installation stays sandboxed.
