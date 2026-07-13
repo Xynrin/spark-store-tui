@@ -4,9 +4,9 @@
 
 | 渠道 | 产物 |
 |---|---|
-| GitHub / Gitee Release | `spark-store-tui-source-0.8.3-r3.tar.gz`、每个架构的 `.deb`、RPM / SRPM |
-| Debian | `spark-store-tui_0.8.3-2_amd64.deb`、`..._arm64.deb` 或 `..._loong64.deb` |
-| RPM | `spark-store-tui-0.8.3-3.<arch>.rpm`（含 `loongarch64`） |
+| GitHub / Gitee Release | `spark-store-tui-source-0.8.3-r4.tar.gz`、每个架构的 `.deb`、RPM / SRPM |
+| Debian | `spark-store-tui_0.8.3-3_amd64.deb`、`..._arm64.deb` 或 `..._loong64.deb` |
+| RPM | `spark-store-tui-0.8.3-4.<arch>.rpm`（含 `loongarch64`） |
 | AUR | `spark-store-tui`，从 GitHub source tarball 构建 |
 
 ## Debian
@@ -27,7 +27,7 @@ make source
 
 ```bash
 mkdir -p ~/rpmbuild/SOURCES ~/rpmbuild/SPECS
-cp spark-store-tui-source-0.8.3-r3.tar.gz ~/rpmbuild/SOURCES/
+cp spark-store-tui-source-0.8.3-r4.tar.gz ~/rpmbuild/SOURCES/
 cp packaging/rpm/spark-store-tui.spec ~/rpmbuild/SPECS/
 rpmbuild -ba ~/rpmbuild/SPECS/spark-store-tui.spec
 ```

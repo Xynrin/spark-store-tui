@@ -6,6 +6,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/Xynrin/spark-store-tui/internal/domain"
 	"github.com/Xynrin/spark-store-tui/internal/download"
 	"github.com/Xynrin/spark-store-tui/internal/provider"
 	"github.com/Xynrin/spark-store-tui/internal/state"
@@ -44,7 +45,15 @@ func main() {
 		configDir = "."
 	}
 	tasks := state.NewTaskStore(configDir + string(os.PathSeparator) + "sparkstore" + string(os.PathSeparator) + "tasks.json")
-	downloader := download.NewService(nil, tasks, download.DefaultDownloadDir())
+	var downloader interface {
+		ui.Downloader
+		RecoverInterrupted() ([]domain.DownloadTask, error)
+	}
+	if host.Family == "deb" {
+		downloader = download.NewAPTSSService(tasks, download.DefaultDownloadDir())
+	} else {
+		downloader = download.NewService(nil, tasks, download.DefaultDownloadDir())
+	}
 	recovered, recoveryErr := downloader.RecoverInterrupted()
 	if recoveryErr != nil {
 		fmt.Fprintln(os.Stderr, "sparkstore: could not recover download state:", recoveryErr)

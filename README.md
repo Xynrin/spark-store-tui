@@ -21,36 +21,38 @@
   <img src="https://img.shields.io/badge/Go-%3E%3D1.25-00ADD8?logo=go&logoColor=white" alt="Go 1.25 or newer">
 </p>
 
-> `sparkstore` 只读取 Spark Store 的公开 metadata，通过官方 Metalink 选择下载镜像，并在明确确认后调用对应发行版的官方安装后端安装或卸载软件。
+> `sparkstore` 使用 Spark Store 公开 metadata 展示目录；Debian 应用统一交给官方 `aptss` 下载、校验、安装、更新和卸载，其他受支持发行版交给 Amber APM。
 
-当前稳定版：**0.8.3**；Debian 包修订版：**0.8.3-2**。
+当前稳定版：**0.8.3**；Debian 包修订版：**0.8.3-3**。
 
 ## 功能
 
 - 自动识别 Debian/Ubuntu、Arch、Fedora/RHEL 与 openSUSE，以及 `x86_64` / `aarch64` / `loongarch64` 架构。
 - 分类浏览、搜索、图标终端预览（可选 `chafa`）和长简介展开。
-- Metalink 镜像回退、断点续传、下载任务持久化与无数据超时检测。
-- 应用重启后自动识别完成包和中断任务；中断任务按 `D` 即可继续。
-- `.deb`、RPM 和 Arch 本地包的确认安装；原生包管理器卸载；可选删除本地安装包。
+- Debian 使用 `aptss/aria2` 完成镜像下载、软件源摘要校验与断点续传，并持久化外围任务状态。
+- 应用重启后自动识别完整包和 `.aria2` 中断任务；中断任务按 `D` 即可继续。
+- 选中应用按 `P` 查询已安装版本与候选版本，只升级该应用；支持卸载和可选删除本地安装包。
 
 应用来源只保留 **Spark Store**，不再显示第三方 Release 软件源或 APM Store。
 
 ## 依赖与下载流程
 
-目录浏览和下载引擎由 TUI 原生实现，不通过 `aptss` 下载应用；Debian 包的安装与卸载依赖 **`aptss | spark-store`**。程序优先把下载完成的 `.deb` 交给官方 `ssinstall`，旧环境找不到 `ssinstall` 时回退到 `aptss`。`ca-certificates` 也是必需依赖；`sudo` 与用于图片预览的 `chafa` 是推荐依赖。
+目录展示和 `/` 搜索使用 TUI 已读取的 Spark Store metadata，不会为每次按键启动外部进程；Debian 的实际软件包操作全部依赖 **`aptss | spark-store`**。`ca-certificates` 也是必需依赖；`sudo` 与用于图片预览的 `chafa` 是推荐依赖。
 
 Debian/Ubuntu/UOS/麒麟上的正常流程如下：
 
 1. 根据系统架构和分类读取 Spark Store 公开元数据。
-2. 按 `D` 后解析应用的官方 Metalink，先检查文件名架构，拒绝把其他架构的软件包装到本机。
-3. 按 Metalink 优先级依次尝试镜像，下载到 `~/Downloads/<文件名>.part`；已有分片会使用 HTTP Range 续传。
-4. 任务状态保存在 `~/.config/sparkstore/tasks.json`。进程意外退出后，再次启动会识别完整包或可续传分片。
-5. 有 SHA-256 时先校验，再将 `.part` 原子重命名为最终安装包；元数据没有 SHA-256 时会明确按未校验处理，不使用弱校验冒充 SHA-256。
-6. 下载完成后按 `I` 或 `Enter`，优先通过官方 `ssinstall <本地.deb>` 处理依赖、安装与桌面集成；旧环境回退到 `aptss install <本地.deb> -y`。按 `Esc` 只保留安装包。
+2. 从元数据中的 Deb 文件名取得真实包名，例如目录 `vscode` 对应 `code_…_amd64.deb`，实际包名是 `code`；同时核对架构，拒绝下载其他 CPU 的包。
+3. 按 `D` 后在 `~/Downloads` 执行 `aptss download <包名>=<版本>`。`aptss/aria2` 使用星火软件源配置选择镜像、验证仓库摘要并保存续传状态；TUI 会临时退出全屏界面以显示原生下载进度。
+4. 外围任务状态保存在 `~/.config/sparkstore/tasks.json`。进程意外退出后，再次启动会结合最终文件和 `.aria2` 控制文件识别完成或中断状态。
+5. 下载完成后按 `I` 或 `Enter`，执行 `aptss install <本地.deb> -y`，依赖解析和桌面文件安装均由软件包及 aptss 负责；按 `Esc` 只保留安装包。
+6. 选中应用按 `P` 会执行 `aptss policy <包名>`。发现候选版本高于已安装版本时再次按 `P` 或 `Enter`，执行 `aptss install --only-upgrade <包名> -y`，不会顺带升级全部系统软件。
 
 如果 `~/Downloads` 已有同名完整包，再按 `D` 会提示直接安装、重新下载、删除或取消，不会静默重复下载。一键安装脚本会从星火官方软件包服务器下载、校验并安装 `aptss`；如果直接安装 Release 中的 Deb，则需要本机已经安装 `aptss` 或完整的 Spark Store。
 
-Arch、Fedora/RHEL 与 openSUSE 不下载 Spark Store 的 `.deb`，选中应用后会通过 Amber APM 安装；缺少 `apm` 时会给出错误。一键安装脚本会尝试按发行版补齐 Amber APM，但 TUI 启动本身不依赖它。
+可在终端单独运行 `aptss search spark-` 检查星火软件源是否已经初始化；TUI 的目录搜索仍以 metadata 为准，下载时才调用 aptss 的真实包索引。若软件源尚未初始化，请执行 `sudo aptss ssupdate`。
+
+Arch、Fedora/RHEL 与 openSUSE 不在主机上直接安装 Spark Store 的 `.deb`，选中应用后会通过 Amber APM 安装；`P` 使用 `apm policy` 与 `apm install --only-upgrade` 查询和更新所选应用。缺少 `apm` 时会给出错误。一键安装脚本会尝试按发行版补齐 Amber APM，但 TUI 启动本身不依赖它。
 
 ## 命令
 
@@ -78,7 +80,7 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 
 ## 快捷键
 
-进入应用页后：`/` 搜索、`[` / `]` 切换分类、`D` 下载/续传、`I` 安装、`U` 卸载、`E` 展开简介、`R` 刷新、`q` 退出。
+进入应用页后：`/` 搜索、`[` / `]` 切换分类、`D` 下载/续传、`I` 安装、`P` 检查/更新所选应用、`U` 卸载、`E` 展开简介、`R` 刷新、`q` 退出。
 
 下载中断或进程被关闭后，下一次启动会将任务标记为“可继续”，而不会卡住 UI；选中对应应用后按 `D` 继续下载。
 
@@ -86,10 +88,10 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 
 | 平台 | 发布物 | 后缀 / 架构 |
 |---|---|---|
-| Debian / Ubuntu / UOS / 麒麟 | Debian 包 | `spark-store-tui_0.8.3-2_amd64.deb`、`..._arm64.deb`、`..._loong64.deb` |
-| Fedora / RHEL / openSUSE / 银河麒麟 | RPM | `spark-store-tui-0.8.3-3.<arch>.rpm`（含 `loongarch64`） |
+| Debian / Ubuntu / UOS / 麒麟 | Debian 包 | `spark-store-tui_0.8.3-3_amd64.deb`、`..._arm64.deb`、`..._loong64.deb` |
+| Fedora / RHEL / openSUSE / 银河麒麟 | RPM | `spark-store-tui-0.8.3-4.<arch>.rpm`（含 `loongarch64`） |
 | Arch Linux | AUR 源包 | `spark-store-tui`（构建本机架构二进制） |
-| 通用构建 | 源码包 | `spark-store-tui-source-0.8.3-r3.tar.gz` |
+| 通用构建 | 源码包 | `spark-store-tui-source-0.8.3-r4.tar.gz` |
 
 `v0.8.3` 同时提供 `amd64` / `x86_64`、`arm64` / `aarch64` 与 `loong64` / `loongarch64` 的 Deb、RPM。仓库中的 [`apt/`](apt/README.md) 与 [`rpm/`](rpm/README.md) 只是冻结在 `0.7.2` 的历史归档，为避免已有软件源立即失效而保留，不代表当前版本，也不再用于新安装或更新；Gitee 当前没有 APT/RPM Pages 仓库。请使用本页的一键安装命令或 `v0.8.3` Release，并只下载与本机架构匹配的包。
 
@@ -112,8 +114,9 @@ go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
 ```bash
 curl -LO https://d.spark-app.store/store/depends/aptss_4.8.1-1_all.deb
 echo 'cd95de3488f7e39ce0300b1e3ba38b0c9416871e68fb91098011ace26f057751  aptss_4.8.1-1_all.deb' | sha256sum -c -
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-2_amd64.deb
-sudo apt install ./aptss_4.8.1-1_all.deb ./spark-store-tui_0.8.3-2_amd64.deb
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-3_amd64.deb
+sudo apt install ./aptss_4.8.1-1_all.deb ./spark-store-tui_0.8.3-3_amd64.deb
+sudo aptss ssupdate
 ```
 
 aarch64 设备将文件名中的 `amd64` 替换为 `arm64`；龙芯设备替换为 `loong64`。
@@ -133,8 +136,8 @@ bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/mast
 Debian / Ubuntu 已安装 `aptss` 或 Spark Store 时，可直接下载 Gitee Release：
 
 ```bash
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-2_amd64.deb
-sudo apt install ./spark-store-tui_0.8.3-2_amd64.deb
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui_0.8.3-3_amd64.deb
+sudo apt install ./spark-store-tui_0.8.3-3_amd64.deb
 ```
 
 Gitee 也可用于源码构建：
@@ -150,7 +153,7 @@ sparkstore
 RPM 直链：
 
 ```text
-https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui-0.8.3-3.x86_64.rpm
+https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/spark-store-tui-0.8.3-4.x86_64.rpm
 ```
 
 ### RPM 系统
@@ -158,13 +161,13 @@ https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.8.3/s
 下载对应发行版与架构的 `.rpm` 后执行：
 
 ```bash
-sudo dnf install ./spark-store-tui-0.8.3-3.x86_64.rpm
+sudo dnf install ./spark-store-tui-0.8.3-4.x86_64.rpm
 ```
 
 openSUSE 可使用：
 
 ```bash
-sudo zypper install ./spark-store-tui-0.8.3-3.x86_64.rpm
+sudo zypper install ./spark-store-tui-0.8.3-4.x86_64.rpm
 ```
 
 ### Arch Linux / AUR

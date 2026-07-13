@@ -1,5 +1,12 @@
 # spark-store-tui v0.8.3
 
+## Debian revision 0.8.3-3
+
+- Delegate Debian application download, resume, repository digest verification, installation and removal to official `aptss`.
+- Add per-application installed/candidate version checks and confirmed upgrades with `aptss` or Amber APM.
+- Recover interrupted aria2 downloads after restart and show native aptss download progress outside the full-screen TUI.
+- Publish source revision r4 and RPM revision 4; AUR pkgrel 5 carries the same selected-application update flow through Amber APM.
+
 ## Debian revision 0.8.3-2
 
 - Depend on `aptss | spark-store` and bootstrap the verified official `aptss` package in the one-command installer.

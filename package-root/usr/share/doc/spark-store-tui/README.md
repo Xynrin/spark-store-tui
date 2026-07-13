@@ -2,9 +2,10 @@
 
 `sparkstore` is the primary command for Spark Store TUI 0.8.0.
 
-The application reads Spark Store public metadata, downloads packages through
-official Metalink mirrors, and can resume interrupted downloads after restart.
-It supports native package-manager installation and removal after confirmation.
+The application reads Spark Store public metadata. On Debian systems it uses
+official aptss for download, resume, repository digest verification,
+installation, selected-application updates and removal. Other supported hosts
+use Amber APM after confirmation.
 
 Optional dependencies:
 

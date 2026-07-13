@@ -1,10 +1,11 @@
 VERSION := 0.8.3
-DEB_REVISION := 2
+DEB_REVISION := 3
+SOURCE_REVISION := 4
 PKGNAME := spark-store-tui
 PKGROOT := package-root
 ARCH ?= $(shell dpkg --print-architecture 2>/dev/null || echo amd64)
 DEB := $(PKGNAME)_$(VERSION)-$(DEB_REVISION)_$(ARCH).deb
-SOURCE_TAR := $(PKGNAME)-source-$(VERSION).tar.gz
+SOURCE_TAR := $(PKGNAME)-source-$(VERSION)-r$(SOURCE_REVISION).tar.gz
 SOURCE_DIR := $(PKGNAME)-source-$(VERSION)
 
 .PHONY: all check build source clean local-install go-test go-build
@@ -39,7 +40,7 @@ build:
 
 source:
 	@temporary=$$(mktemp); \
-	tar --exclude='.git' --exclude='*.deb' --exclude='*.rpm' --exclude='*.tar.gz' --exclude='.cache' --exclude='build' --exclude='dist' --exclude='apt' --exclude='rpm' --exclude='package-root/tmp' --exclude='./packaging/aur/PKGBUILD' --exclude='./packaging/aur/.SRCINFO' --transform='s,^,$(SOURCE_DIR)/,' -czf "$$temporary" .; \
+	tar --exclude='.git' --exclude='.codex-tools' --exclude='*.deb' --exclude='*.rpm' --exclude='*.tar.gz' --exclude='.cache' --exclude='build' --exclude='dist' --exclude='apt' --exclude='rpm' --exclude='package-root/tmp' --exclude='./packaging/aur/PKGBUILD' --exclude='./packaging/aur/.SRCINFO' --transform='s,^,$(SOURCE_DIR)/,' -czf "$$temporary" .; \
 	mv "$$temporary" $(SOURCE_TAR)
 
 local-install: build

@@ -2,6 +2,7 @@ package system
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -37,66 +38,22 @@ func TestUninstallCommand(t *testing.T) {
 }
 
 func TestInstallProcess(t *testing.T) {
-	process, err := debianInstallProcess("/tmp/code.deb", func(name string) (string, error) {
-		if name == "ssinstall" {
-			return "/test/bin/ssinstall", nil
-		}
-		return "", os.ErrNotExist
-	}, nil)
-	if err != nil || process.Path == "" || !contains(process.Args, "/tmp/code.deb") {
-		t.Fatalf("process = %+v, err = %v", process, err)
+	aptss := fakeExecutable(t, "aptss")
+	process, err := InstallProcess(Host{Family: "deb"}, domain.App{PackageName: "code"}, "/tmp/code.deb")
+	if err != nil {
+		t.Fatal(err)
 	}
-	want := []string{"/test/bin/ssinstall", "/tmp/code.deb"}
+	want := []string{aptss, "install", "/tmp/code.deb", "-y"}
 	if os.Geteuid() != 0 {
 		want = append([]string{"sudo"}, want...)
 	}
 	if got := process.Args; !reflect.DeepEqual(got, want) {
 		t.Fatalf("arguments = %q, want %q", got, want)
-	}
-}
-
-func TestInstallProcessFallsBackToAPTSS(t *testing.T) {
-	process, err := debianInstallProcess("/tmp/code.deb", func(name string) (string, error) {
-		if name == "aptss" {
-			return "/test/bin/aptss", nil
-		}
-		return "", os.ErrNotExist
-	}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := []string{"/test/bin/aptss", "install", "/tmp/code.deb", "-y"}
-	if os.Geteuid() != 0 {
-		want = append([]string{"sudo"}, want...)
-	}
-	if got := process.Args; !reflect.DeepEqual(got, want) {
-		t.Fatalf("arguments = %q, want %q", got, want)
-	}
-}
-
-func TestInstallProcessFindsBundledSSInstall(t *testing.T) {
-	ssinstall := t.TempDir() + "/ssinstall"
-	if err := os.WriteFile(ssinstall, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	process, err := debianInstallProcess("/tmp/code.deb", func(string) (string, error) {
-		return "", os.ErrNotExist
-	}, []string{ssinstall})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !contains(process.Args, ssinstall) {
-		t.Fatalf("arguments = %q, want bundled ssinstall %q", process.Args, ssinstall)
 	}
 }
 
 func TestInstallProcessUsesAPMForArch(t *testing.T) {
-	bin := t.TempDir()
-	apm := bin + "/apm"
-	if err := os.WriteFile(apm, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("PATH", bin)
+	fakeExecutable(t, "apm")
 	process, err := InstallProcess(Host{Family: "arch"}, domain.App{PackageName: "vscode"}, "")
 	if err != nil {
 		t.Fatal(err)
@@ -111,12 +68,7 @@ func TestInstallProcessUsesAPMForArch(t *testing.T) {
 }
 
 func TestInstallProcessUsesDebianPackageNameForAPM(t *testing.T) {
-	bin := t.TempDir()
-	apm := bin + "/apm"
-	if err := os.WriteFile(apm, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("PATH", bin)
+	fakeExecutable(t, "apm")
 	app := domain.App{
 		PackageName: "vscode",
 		Filename:    "code_1.128.0-1783465401_amd64.deb",
@@ -132,18 +84,18 @@ func TestInstallProcessUsesDebianPackageNameForAPM(t *testing.T) {
 	if got := process.Args; !reflect.DeepEqual(got, want) {
 		t.Fatalf("arguments = %q, want %q", got, want)
 	}
-	if command, err := UninstallCommand(Host{Family: "rpm"}, app); err != nil || command != "sudo apm remove -y code" {
+	if command, err := UninstallCommand(Host{Family: "rpm"}, app); err != nil || command != "sudo apm remove code -y" {
 		t.Fatalf("uninstall command = %q, err = %v", command, err)
 	}
 }
 
-func contains(values []string, wanted string) bool {
-	for _, value := range values {
-		if value == wanted {
-			return true
-		}
+func TestPackageNameUsesDebianFilename(t *testing.T) {
+	name, err := PackageName(Host{Family: "deb"}, domain.App{
+		PackageName: "vscode", Filename: "code_1.128.0-1783465401_amd64.deb",
+	})
+	if err != nil || name != "code" {
+		t.Fatalf("package name = %q, err = %v", name, err)
 	}
-	return false
 }
 
 func TestPrivilegedCommandOnlyUsesSudoForNonRoot(t *testing.T) {
@@ -158,25 +110,61 @@ func TestPrivilegedCommandOnlyUsesSudoForNonRoot(t *testing.T) {
 	}
 }
 
-func TestDebianInstallProcessRequiresOfficialBackend(t *testing.T) {
-	process, err := debianInstallProcess("/tmp/code.deb", func(string) (string, error) {
-		return "", os.ErrNotExist
-	}, nil)
+func TestDebianInstallProcessRequiresAPTSS(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	process, err := InstallProcess(Host{Family: "deb"}, domain.App{PackageName: "code"}, "/tmp/code.deb")
 	if err == nil || process != nil {
 		t.Fatalf("process = %+v, err = %v", process, err)
 	}
 }
 
-func TestInstallProcessSkipsSudoForCurrentRootUser(t *testing.T) {
-	process, err := debianInstallProcess("/tmp/code.deb", func(name string) (string, error) {
-		return "/test/bin/ssinstall", nil
-	}, nil)
+func TestUpdateProcessUsesOnlyUpgrade(t *testing.T) {
+	aptss := fakeExecutable(t, "aptss")
+	process, err := UpdateProcess(Host{Family: "deb"}, domain.App{
+		PackageName: "vscode", Filename: "code_1.128.0_amd64.deb",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if os.Geteuid() == 0 && process.Args[0] == "sudo" {
-		t.Fatalf("root process must not invoke sudo: %q", process.Args)
+	want := []string{aptss, "install", "--only-upgrade", "code", "-y"}
+	if os.Geteuid() != 0 {
+		want = append([]string{"sudo"}, want...)
 	}
+	if !reflect.DeepEqual(process.Args, want) {
+		t.Fatalf("arguments = %q, want %q", process.Args, want)
+	}
+}
+
+func TestParsePolicyStatus(t *testing.T) {
+	status := parsePolicyStatus("code", "code:\n  Installed: 1.0\n  Candidate: 1.1\n")
+	if !status.Installed || !status.UpdateAvailable || status.InstalledVersion != "1.0" || status.CandidateVersion != "1.1" {
+		t.Fatalf("status = %+v", status)
+	}
+	missing := parsePolicyStatus("code", "Installed: (none)\nCandidate: 1.1\n")
+	if missing.Installed || missing.UpdateAvailable {
+		t.Fatalf("missing status = %+v", missing)
+	}
+}
+
+func TestPackageEnvironmentDropsWindowsWSLPaths(t *testing.T) {
+	t.Setenv("PATH", "/usr/local/bin:/mnt/c/Program Files/PowerShell/7:/usr/bin:C:\\Tools")
+	for _, entry := range packageEnvironment() {
+		if entry == "PATH=/usr/local/bin:/usr/bin" {
+			return
+		}
+	}
+	t.Fatalf("sanitized PATH not found in %q", packageEnvironment())
+}
+
+func fakeExecutable(t *testing.T, name string) string {
+	t.Helper()
+	directory := t.TempDir()
+	path := filepath.Join(directory, name)
+	if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", directory)
+	return path
 }
 
 func TestImagePreviewCommand(t *testing.T) {
