@@ -31,17 +31,6 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -z "$MIRROR" ]; then
-  printf '选择下载网络 [1] GitHub  [2] Gitee： '
-  read -r choice
-  case "$choice" in
-    1|github|GitHub) MIRROR="github" ;;
-    2|gitee|Gitee) MIRROR="gitee" ;;
-    *) echo '请输入 1 或 2。' >&2; exit 2 ;;
-  esac
-fi
-case "$MIRROR" in github|gitee) ;; *) echo '镜像只能是 github 或 gitee。' >&2; exit 2 ;; esac
-
 if [ "$(uname -s)" != Linux ]; then
   echo '此安装器仅支持 Linux。' >&2
   exit 1
@@ -79,6 +68,17 @@ if [ "$FAMILY" = arch ]; then
   yay -S --needed spark-store-tui
   exit 0
 fi
+
+if [ -z "$MIRROR" ]; then
+  printf '选择下载网络 [1] GitHub  [2] Gitee： '
+  read -r choice
+  case "$choice" in
+    1|github|GitHub) MIRROR="github" ;;
+    2|gitee|Gitee) MIRROR="gitee" ;;
+    *) echo '请输入 1 或 2。' >&2; exit 2 ;;
+  esac
+fi
+case "$MIRROR" in github|gitee) ;; *) echo '镜像只能是 github 或 gitee。' >&2; exit 2 ;; esac
 
 TEMP_DIR=$(mktemp -d)
 # apt downloads local packages as the _apt user when possible.  Allow it to
